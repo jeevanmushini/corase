@@ -10,7 +10,7 @@ import { useCart } from '@/context/CartContext';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
-type PaymentMethod = 'upi' | 'card' | 'cod';
+type PaymentMethod = 'upi' | 'card' | 'cod' | 'upi_direct';
 
 const FIELDS = [
     { key: 'name',    label: 'Full Name',   placeholder: 'Arjun Mehta',       type: 'text',  col: 2 },
@@ -23,7 +23,7 @@ const FIELDS = [
 ] as const;
 
 const PAYMENT_OPTIONS = [
-    { id: 'upi',  label: 'Razorpay (UPI / Card)', sub: 'Google Pay, PhonePe, Paytm, Visa, Mastercard' },
+    { id: 'upi_direct', label: 'Direct UPI (Instant QR)', sub: 'Pay directly via GPay, PhonePe, Paytm' },
 ] as const;
 
 export default function CheckoutPage() {
@@ -46,8 +46,12 @@ export default function CheckoutPage() {
         state: '', 
         pincode: '',
     });
-    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('upi');
+    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('upi_direct');
     const [successOrderId, setSuccessOrderId] = useState<string | null>(null);
+    const [showUpiModal, setShowUpiModal] = useState(false);
+    const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
+    const [utr, setUtr] = useState('');
+    const [isConfirming, setIsConfirming] = useState(false);
 
     const shipping = cart.length > 0 && discountedTotal < 1000 ? 99 : 0;
     const finalTotal = discountedTotal + shipping;
@@ -88,6 +92,7 @@ export default function CheckoutPage() {
                     totalPrice: finalTotal,
                     discount: totalPrice - discountedTotal,
                     coupon: appliedCoupon?.code,
+                    paymentMethod: paymentMethod, // Send selected method
                 }),
             });
 
@@ -99,16 +104,21 @@ export default function CheckoutPage() {
                 return;
             }
 
-            // 2. Open Razorpay Widget
+            if (paymentMethod === 'upi_direct') {
+                setPendingOrderId(orderData.orderId);
+                setShowUpiModal(true);
+                return;
+            }
+
+            // 2. Open Razorpay Widget (Standard Flow)
             const options = {
-                key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, // Use public key here
+                key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, 
                 amount: orderData.amount,
                 currency: orderData.currency,
                 name: "CORASE",
                 description: "DRIP, DETAIL, DOMINANCE",
                 order_id: orderData.razorpayOrderId,
                 handler: async function (response: any) {
-                    // 3. Verify payment on backend
                     const verifyRes = await fetch("/api/orders/verify", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -119,8 +129,6 @@ export default function CheckoutPage() {
                             orderId: orderData.orderId,
                         }),
                     });
-
-                    const verifyData = await verifyRes.json();
 
                     if (verifyRes.ok) {
                         setSuccessOrderId(orderData.orderId);
@@ -151,6 +159,39 @@ export default function CheckoutPage() {
             alert("Something went wrong during checkout.");
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const confirmUpiPayment = async () => {
+        if (!utr) {
+            alert("Please enter the Transaction ID / UTR number.");
+            return;
+        }
+
+        setIsConfirming(true);
+        try {
+            const res = await fetch("/api/orders/update-transaction", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    orderId: pendingOrderId,
+                    transactionId: utr
+                }),
+            });
+
+            if (res.ok) {
+                setSuccessOrderId(pendingOrderId);
+                clearCart();
+                setStep('success');
+                setShowUpiModal(false);
+            } else {
+                alert("Failed to update transaction. Please contact support.");
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Something went wrong.");
+        } finally {
+            setIsConfirming(false);
         }
     };
 
@@ -392,6 +433,74 @@ export default function CheckoutPage() {
                     </div>
                 </div>
             </div>
+
+            {/* UPI Direct Modal */}
+            {showUpiModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+                    <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="absolute inset-0 bg-black/90 backdrop-blur-sm"
+                        onClick={() => setShowUpiModal(false)}
+                    />
+                    <motion.div 
+                        initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                        animate={{ scale: 1, opacity: 1, y: 0 }}
+                        className="relative bg-[#1a1a1a] border border-white/10 w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl"
+                    >
+                        <div className="p-8 text-center">
+                            <div className="w-16 h-16 bg-white text-black rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(255,255,255,0.15)]">
+                                <Image src="/upi-icon.png" alt="UPI" width={32} height={32} className="invert" onError={(e) => (e.currentTarget.src = 'https://upload.wikimedia.org/wikipedia/commons/e/e1/UPI-Logo-vector.svg')} />
+                            </div>
+                            <h3 className="text-xl font-black font-syncopate uppercase tracking-tight mb-2">Scan & Pay</h3>
+                            <p className="text-white/50 text-sm font-medium mb-8">Scan this QR code with any UPI app to pay ₹{finalTotal}</p>
+                            
+                            <div className="bg-white p-4 rounded-3xl inline-block mb-8 shadow-[0_0_50px_rgba(255,255,255,0.1)]">
+                                <Image 
+                                    src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`upi://pay?pa=${process.env.NEXT_PUBLIC_UPI_ID}&pn=KORASIKA%20ABHISHEK&am=${finalTotal}&cu=INR&tn=Order_${pendingOrderId?.slice(-6)}`)}`}
+                                    alt="UPI QR Code"
+                                    width={220}
+                                    height={220}
+                                    className="rounded-xl"
+                                />
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="bg-white/5 rounded-2xl p-4 border border-white/5 space-y-4">
+                                    <div>
+                                        <p className="text-[10px] text-white/30 font-black uppercase tracking-widest mb-1">UPI ID</p>
+                                        <p className="text-sm font-mono text-white select-all">{process.env.NEXT_PUBLIC_UPI_ID}</p>
+                                    </div>
+                                    <div className="pt-4 border-t border-white/5">
+                                        <p className="text-[10px] text-white/30 font-black uppercase tracking-widest mb-2">Enter Transaction ID / UTR</p>
+                                        <input 
+                                            type="text"
+                                            value={utr}
+                                            onChange={(e) => setUtr(e.target.value)}
+                                            placeholder="12-digit UTR number"
+                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm font-mono text-white placeholder-white/20 focus:outline-none focus:border-white/40 transition-all"
+                                        />
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={confirmUpiPayment}
+                                    disabled={isConfirming || !utr}
+                                    className="w-full bg-brand-red text-white py-4 rounded-2xl font-black font-syncopate text-xs tracking-widest uppercase hover:bg-red-600 transition-all shadow-[0_10px_30px_rgba(255,50,50,0.3)] disabled:opacity-50"
+                                >
+                                    {isConfirming ? "Confirming..." : "I've Paid"}
+                                </button>
+                                <button
+                                    onClick={() => setShowUpiModal(false)}
+                                    className="w-full text-white/40 text-xs font-bold uppercase tracking-widest hover:text-white transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
         </div>
     );
 }

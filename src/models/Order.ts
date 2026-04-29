@@ -32,6 +32,7 @@ export interface IOrder extends Document {
   status: "Pending" | "Processing" | "Shipped" | "Delivered" | "Cancelled";
   razorpayOrderId?: string;
   razorpayPaymentId?: string;
+  transactionId?: string;
   trackingNumber?: string;
   carrier?: string;
   shippedAt?: Date;
@@ -75,6 +76,7 @@ const OrderSchema = new Schema(
     },
     razorpayOrderId: { type: String },
     razorpayPaymentId: { type: String },
+    transactionId: { type: String },
     trackingNumber: { type: String },
     carrier: { type: String },
     shippedAt: { type: Date },

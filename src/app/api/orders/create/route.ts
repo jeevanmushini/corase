@@ -19,7 +19,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const { items, shippingAddress, subtotal, shippingPrice, totalPrice, discount, coupon: couponCode } = await req.json();
+    const { 
+      items, shippingAddress, subtotal, shippingPrice, totalPrice, discount, 
+      coupon: couponCode, paymentMethod 
+    } = await req.json();
 
     if (!items || items.length === 0) {
       return NextResponse.json({ message: "No order items" }, { status: 400 });
@@ -31,7 +34,6 @@ export async function POST(req: Request) {
     if (couponCode) {
       const coupon = await Coupon.findOne({ code: couponCode.toUpperCase(), isActive: true });
       if (coupon) {
-        // Re-calculate discount
         if (coupon.discountType === "percentage") {
           serverDiscount = (subtotal * coupon.discountValue) / 100;
           if (coupon.maxDiscount && serverDiscount > coupon.maxDiscount) {
@@ -43,24 +45,24 @@ export async function POST(req: Request) {
       }
     }
 
-    // Verify totals
     const expectedTotal = subtotal + shippingPrice - serverDiscount;
-    // We'll trust the provided totalPrice for now but log if it differs significantly
-    // In production, you'd strictly enforce expectedTotal === totalPrice
     
-    // 1. Create a Razorpay Order
-    const rzpOrder = await razorpay.orders.create({
-      amount: Math.round(expectedTotal * 100), // Use server calculated total
-      currency: "INR",
-      receipt: `receipt_${Date.now()}`,
-    });
+    let rzpOrder = null;
+    if (paymentMethod !== "upi_direct") {
+      // 1. Create a Razorpay Order
+      rzpOrder = await razorpay.orders.create({
+        amount: Math.round(expectedTotal * 100),
+        currency: "INR",
+        receipt: `receipt_${Date.now()}`,
+      });
+    }
 
     // 2. Create Order in MongoDB (Pending state)
     const newOrder = await Order.create({
       user: (session.user as any).id,
       items,
       shippingAddress,
-      paymentMethod: "Razorpay",
+      paymentMethod: paymentMethod === "upi_direct" ? "UPI Direct" : "Razorpay",
       subtotal,
       shippingPrice,
       totalPrice: expectedTotal,
@@ -68,14 +70,14 @@ export async function POST(req: Request) {
       coupon: couponCode,
       isPaid: false,
       status: "Pending",
-      razorpayOrderId: rzpOrder.id,
+      razorpayOrderId: rzpOrder?.id,
     });
 
     return NextResponse.json({
       orderId: newOrder._id,
-      razorpayOrderId: rzpOrder.id,
-      amount: rzpOrder.amount,
-      currency: rzpOrder.currency,
+      razorpayOrderId: rzpOrder?.id,
+      amount: rzpOrder ? rzpOrder.amount : expectedTotal * 100,
+      currency: rzpOrder ? rzpOrder.currency : "INR",
     }, { status: 201 });
   } catch (error) {
     console.error("Order creation error:", error);

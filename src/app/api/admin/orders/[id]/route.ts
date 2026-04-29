@@ -21,19 +21,21 @@ export async function PUT(
     const logMsg = `[${new Date().toISOString()}] UPDATING ${id}: ${JSON.stringify(body)}\n`;
     try { fs.appendFileSync('scratch/api_debug.log', logMsg); } catch(e) {}
     
-    const { status, trackingNumber, carrier } = body;
+    const { status, trackingNumber, carrier, isPaid, paidAt } = body;
 
     await connectToDatabase();
 
-    // Use findOne to be more specific
     const updateData: any = {};
     if (status !== undefined) updateData.status = status;
     if (trackingNumber !== undefined) updateData.trackingNumber = trackingNumber;
     if (carrier !== undefined) updateData.carrier = carrier;
+    if (isPaid !== undefined) updateData.isPaid = isPaid;
+    if (paidAt !== undefined) updateData.paidAt = paidAt;
 
     // Auto-set timestamps for status changes
     if (status === "Shipped") updateData.shippedAt = new Date();
     if (status === "Delivered") updateData.deliveredAt = new Date();
+    if (isPaid === true && !updateData.paidAt) updateData.paidAt = new Date();
 
     try { fs.appendFileSync('scratch/api_debug.log', `[${new Date().toISOString()}] UPDATE_DATA: ${JSON.stringify(updateData)}\n`); } catch(e) {}
 

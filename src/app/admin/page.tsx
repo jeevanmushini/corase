@@ -1330,17 +1330,31 @@ export default function AdminDashboard() {
                                         <div className="grid grid-cols-2 gap-6">
                                             <div>
                                                 <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mb-1">Status</p>
-                                                <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${viewingOrder.isPaid ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
-                                                    {viewingOrder.isPaid ? 'PAID' : 'PENDING'}
-                                                </span>
+                                                <div className="flex items-center gap-3">
+                                                    <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${viewingOrder.isPaid ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                                                        {viewingOrder.isPaid ? 'PAID' : 'PENDING'}
+                                                    </span>
+                                                    {!viewingOrder.isPaid && (
+                                                        <button 
+                                                            onClick={() => updateOrderStatus(viewingOrder._id, { isPaid: true })}
+                                                            className="text-[9px] font-black uppercase tracking-widest text-emerald-400 hover:underline"
+                                                        >
+                                                            Mark as Paid
+                                                        </button>
+                                                    )}
+                                                </div>
                                             </div>
                                             <div>
                                                 <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mb-1">Method</p>
                                                 <p className="text-xs font-bold text-white uppercase">{viewingOrder.paymentMethod}</p>
                                             </div>
                                             <div className="col-span-2">
-                                                <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mb-1">Razorpay ID</p>
-                                                <p className="text-xs font-mono text-white/70 select-all">{viewingOrder.razorpayPaymentId || 'N/A'}</p>
+                                                <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mb-1">
+                                                    {viewingOrder.paymentMethod === 'UPI Direct' ? 'UPI Transaction ID (UTR)' : 'Payment ID'}
+                                                </p>
+                                                <p className="text-xs font-mono text-white/70 select-all">
+                                                    {viewingOrder.transactionId || viewingOrder.razorpayPaymentId || viewingOrder.razorpayOrderId || 'N/A'}
+                                                </p>
                                             </div>
                                         </div>
                                     </section>
