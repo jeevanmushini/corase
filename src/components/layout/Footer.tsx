@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import { Mail, Phone, MapPin, AtSign, PlayCircle, Share2 } from 'lucide-react';
+import { Mail, Phone, MapPin, Instagram, PlayCircle, Share2 } from 'lucide-react';
 
 const LINKS = {
     Shop: [
@@ -27,7 +27,7 @@ const LINKS = {
 };
 
 const SOCIALS = [
-    { icon: AtSign,      label: 'Instagram',   href: '#', color: '#E1306C' },
+    { icon: Instagram,   label: 'Instagram',   href: 'https://www.instagram.com/corase.co?igsh=MXBvY3dxZTN2Ym9oag==', color: '#E1306C' },
     { icon: Share2,      label: 'X / Twitter', href: '#', color: '#1DA1F2' },
     { icon: PlayCircle,  label: 'YouTube',     href: '#', color: '#FF0000' },
 ];
@@ -70,6 +70,12 @@ const Footer: React.FC = () => {
                                     <span className="text-sm font-medium">+91 90635 73124</span>
                                 </div>
                             </div>
+                            <a href="https://www.instagram.com/corase.co?igsh=MXBvY3dxZTN2Ym9oag==" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-foreground/70 hover:text-foreground transition-colors group">
+                                <div className="w-9 h-9 bg-foreground/[0.05] rounded-xl flex items-center justify-center group-hover:bg-foreground/10 transition-colors">
+                                    <Instagram size={16} className="text-foreground/60 group-hover:text-foreground transition-colors" />
+                                </div>
+                                <span className="text-sm font-medium">@corase.co</span>
+                            </a>
                             <div className="flex items-center gap-3 text-foreground/60">
                                 <div className="w-9 h-9 bg-foreground/[0.05] rounded-xl flex items-center justify-center">
                                     <MapPin size={16} className="text-foreground/60" />
