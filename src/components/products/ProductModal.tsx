@@ -90,14 +90,14 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
     const nextImage = (e: React.MouseEvent) => {
         e.stopPropagation();
         if (product?.images?.length) {
-            setCurrentImageIndex((prev) => (prev + 1) % product.images.length);
+            setCurrentImageIndex((prev) => (prev + 1) % product.images!.length);
         }
     };
 
     const prevImage = (e: React.MouseEvent) => {
         e.stopPropagation();
         if (product?.images?.length) {
-            setCurrentImageIndex((prev) => (prev - 1 + product.images.length) % product.images.length);
+            setCurrentImageIndex((prev) => (prev - 1 + product.images!.length) % product.images!.length);
         }
     };
 
