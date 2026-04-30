@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useTheme } from 'next-themes';
-import { ThemeToggle } from './ThemeToggle';
+
 
 const Navbar: React.FC = () => {
     const { theme } = useTheme();
@@ -280,9 +280,6 @@ const Navbar: React.FC = () => {
                                 <Heart size={24} />
                                 <span>Wishlist</span>
                             </Link>
-                        </div>
-                        <div className="pt-6">
-                            <ThemeToggle />
                         </div>
                     </motion.div>
                 )}

@@ -28,9 +28,7 @@ export const metadata: Metadata = {
     description: "Limited-drop DRIP, DETAIL, DOMINANCE for the bold and the restless.",
     type: "website",
   },
-  verification: {
-    google: "YOUR_GOOGLE_VERIFICATION_CODE_HERE",
-  },
+
 };
 
 export default function RootLayout({

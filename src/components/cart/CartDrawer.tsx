@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 const CartDrawer: React.FC = () => {
     const { 
         cart, isCartOpen, setIsOpen, removeFromCart, updateQuantity, 
-        totalPrice, appliedCoupon, applyCoupon, removeCoupon, discountedTotal 
+        totalPrice, appliedCoupon, applyCoupon, removeCoupon, discountedTotal, clearBuyNowItem 
     } = useCart();
 
     return (
@@ -170,6 +170,7 @@ const CartDrawer: React.FC = () => {
                                  <a
                                      href="/checkout"
                                      onClick={(e) => {
+                                         clearBuyNowItem();
                                          setIsOpen(false);
                                      }}
                                      className="w-full bg-foreground text-background py-5 rounded-full font-black tracking-[0.4em] text-[10px] hover:bg-foreground/80 active:scale-95 transition-all shadow-[0_10px_30px_rgba(0,0,0,0.1)] flex items-center justify-center space-x-2 group uppercase"

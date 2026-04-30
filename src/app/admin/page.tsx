@@ -12,7 +12,9 @@ import {
     Image as ImageIcon, Settings as SettingsIcon, Search, Filter, ArrowDown, ArrowUp, BarChart3,
     Truck, MapPin, CreditCard, ExternalLink, Calendar, Printer, Ticket, Heart
 } from 'lucide-react';
-import Logo from '@/components/layout/Logo';
+
+import { cn } from '@/lib/utils';
+
 import AdminProductModal from '@/components/admin/ProductModal';
 import ImageUpload from '@/components/admin/ImageUpload';
 import AdminCouponModal from '@/components/admin/CouponModal';
@@ -22,6 +24,7 @@ const NAV = [
     { icon: Package,         label: 'Inventory', tab: 'inventory' },
     { icon: ShoppingCart,    label: 'Orders',    tab: 'orders'    },
     { icon: Ticket,          label: 'Coupons',   tab: 'coupons'   },
+    { icon: CreditCard,      label: 'Payments',  tab: 'payments'  },
     { icon: SettingsIcon,    label: 'System',    tab: 'settings'  },
     { icon: Users,           label: 'Customers', tab: 'customers' },
 ] as const;
@@ -104,7 +107,7 @@ export default function AdminDashboard() {
     const updateOrderStatus = async (orderId: string, updates: any) => {
         setIsSaving(true);
         try {
-            console.log(`[CLIENT] Sending update for ${orderId}:`, updates);
+
             const res = await fetch(`/api/admin/orders/${orderId}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
@@ -112,7 +115,7 @@ export default function AdminDashboard() {
             });
             if (res.ok) {
                 const updatedOrder = await res.json();
-                console.log(`[ADMIN API] Order ${orderId} updated successfully`);
+
                 setOrders(prev => prev.map(o => o._id === orderId ? updatedOrder : o));
                 if (viewingOrder?._id === orderId) setViewingOrder(updatedOrder);
             }
@@ -145,10 +148,12 @@ export default function AdminDashboard() {
                     name: savedProduct.title,
                     price: savedProduct.price,
                     description: savedProduct.description,
-                    image: savedProduct.images[0],
+                    images: savedProduct.images || [],
+                    image: savedProduct.images?.[0] || "",
                     variants: savedProduct.variants,
                     isNewDrop: savedProduct.isNewDrop,
                     isFeatured: savedProduct.isFeatured,
+                    status: savedProduct.status || "none",
                     category: savedProduct.category || productData.category
                 };
 
@@ -264,9 +269,70 @@ export default function AdminDashboard() {
         );
     }
 
+    // Dynamic Stats Calculations
     const totalRevenue = orders.reduce((acc, o) => acc + o.totalPrice, 0);
+    const paidRevenue = orders.filter(o => o.isPaid).reduce((acc, o) => acc + o.totalPrice, 0);
     const lowStockProducts = products.filter(p => p.variants?.some((v: any) => v.stock < 10));
-    const totalItemsSold = orders.reduce((acc, o) => acc + o.items?.reduce((iAcc: number, item: any) => iAcc + item.quantity, 0), 0);
+    const totalItemsSold = orders.reduce((acc, o) => acc + (o.items?.reduce((iAcc: number, item: any) => iAcc + item.quantity, 0) || 0), 0);
+
+    // Growth Calculations
+    const getGrowth = (current: any[], previous: any[], valueKey?: string) => {
+        const curVal = valueKey ? current.reduce((acc, item) => acc + (item[valueKey] || 0), 0) : current.length;
+        const preVal = valueKey ? previous.reduce((acc, item) => acc + (item[valueKey] || 0), 0) : previous.length;
+        if (preVal === 0) return curVal > 0 ? 100 : 0;
+        return Math.round(((curVal - preVal) / preVal) * 100);
+    };
+
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+
+    const curOrders = orders.filter(o => new Date(o.createdAt) >= thirtyDaysAgo);
+    const preOrders = orders.filter(o => new Date(o.createdAt) >= sixtyDaysAgo && new Date(o.createdAt) < thirtyDaysAgo);
+    
+    const curUsers = users.filter(u => new Date(u.createdAt) >= thirtyDaysAgo);
+    const preUsers = users.filter(u => new Date(u.createdAt) >= sixtyDaysAgo && new Date(u.createdAt) < thirtyDaysAgo);
+
+    const pendingUPIPayments = orders.filter(o => o.paymentMethod === 'UPI Direct' && !o.isPaid).length;
+
+    const revenueGrowth = getGrowth(curOrders, preOrders, 'totalPrice');
+    const ordersGrowth = getGrowth(curOrders, preOrders);
+    const itemsGrowth = getGrowth(
+        curOrders.flatMap(o => o.items || []),
+        preOrders.flatMap(o => o.items || []),
+        'quantity'
+    );
+    const customersGrowth = getGrowth(curUsers, preUsers);
+
+    // Chart Data Generation (Last 14 days)
+    const chartData = Array.from({ length: 14 }).map((_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() - (13 - i));
+        const dateStr = date.toDateString();
+        const dayRevenue = orders
+            .filter(o => new Date(o.createdAt).toDateString() === dateStr)
+            .reduce((acc, o) => acc + o.totalPrice, 0);
+        return {
+            label: date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }),
+            value: dayRevenue
+        };
+    });
+
+    const maxChartValue = Math.max(...chartData.map(d => d.value), 1000);
+
+    // Best Sellers Calculation
+    const productSales: Record<string, { name: string, quantity: number, image: string }> = {};
+    orders.forEach(o => {
+        o.items?.forEach((item: any) => {
+            if (!productSales[item.productId]) {
+                productSales[item.productId] = { name: item.name, quantity: 0, image: item.image };
+            }
+            productSales[item.productId].quantity += item.quantity;
+        });
+    });
+    const bestSellers = Object.values(productSales)
+        .sort((a, b) => b.quantity - a.quantity)
+        .slice(0, 5);
 
     const filteredProducts = products.filter(p => 
         (p.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
@@ -299,14 +365,18 @@ export default function AdminDashboard() {
                         className={`
                             w-full flex items-center gap-4 px-5 py-4 rounded-xl
                             text-sm font-bold tracking-wider uppercase transition-all
-                            ${tab === t
-                                ? 'bg-foreground text-background shadow-[0_0_20px_rgba(255,255,255,0.1)]'
-                                : 'text-foreground/60 hover:text-foreground hover:bg-foreground/5'
-                            }
+                            ${tab === t 
+                                ? 'bg-foreground text-background shadow-xl shadow-foreground/10' 
+                                : 'text-foreground/40 hover:text-foreground hover:bg-foreground/5'}
                         `}
                     >
-                        <Icon size={18} />
-                        {label}
+                        <Icon size={18} className={tab === t ? 'text-brand-red' : ''} />
+                        <span className="flex-1 text-left">{label}</span>
+                        {t === 'payments' && pendingUPIPayments > 0 && (
+                            <span className="bg-brand-red text-white text-[9px] font-black px-2 py-0.5 rounded-full">
+                                {pendingUPIPayments}
+                            </span>
+                        )}
                     </button>
                 ))}
             </nav>
@@ -353,10 +423,10 @@ export default function AdminDashboard() {
                             {/* Summary Grid */}
                             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                                 {[
-                                    { label: 'Total Revenue', value: `₹${totalRevenue.toLocaleString()}`, icon: TrendingUp, color: 'text-emerald-400' },
-                                    { label: 'Total Orders', value: orders.length, icon: ShoppingCart, color: 'text-indigo-400' },
-                                    { label: 'Items Sold', value: totalItemsSold, icon: BarChart3, color: 'text-amber-400' },
-                                    { label: 'Customers', value: users.length, icon: Users, color: 'text-brand-red' },
+                                    { label: 'Real Revenue', value: `₹${paidRevenue.toLocaleString()}`, icon: TrendingUp, color: 'text-emerald-400', growth: revenueGrowth, subValue: `₹${totalRevenue.toLocaleString()} Booked` },
+                                    { label: 'Confirmed Orders', value: orders.filter(o => o.isPaid).length, icon: ShoppingCart, color: 'text-indigo-400', growth: ordersGrowth, subValue: `${orders.filter(o => !o.isPaid).length} Unpaid` },
+                                    { label: 'Items Sold', value: totalItemsSold, icon: BarChart3, color: 'text-amber-400', growth: itemsGrowth },
+                                    { label: 'Customers', value: users.length, icon: Users, color: 'text-brand-red', growth: customersGrowth },
                                 ].map((stat, i) => (
                                     <motion.div
                                         key={stat.label}
@@ -369,15 +439,68 @@ export default function AdminDashboard() {
                                             <div className="p-3 bg-foreground/5 rounded-xl group-hover:scale-110 transition-transform">
                                                 <stat.icon size={20} className={stat.color} />
                                             </div>
-                                            <span className="text-[10px] font-black text-foreground/20 uppercase tracking-widest">+12%</span>
+                                            <span className={cn(
+                                                "text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md",
+                                                stat.growth >= 0 ? "text-emerald-400 bg-emerald-400/5" : "text-red-400 bg-red-400/5"
+                                            )}>
+                                                {stat.growth >= 0 ? '+' : ''}{stat.growth}%
+                                            </span>
                                         </div>
                                         <p className="text-2xl font-black text-foreground tracking-tight">{stat.value}</p>
-                                        <p className="text-xs font-bold text-foreground uppercase tracking-widest mt-1">{stat.label}</p>
+                                        <div className="flex items-center justify-between mt-1">
+                                            <p className="text-xs font-bold text-foreground uppercase tracking-widest">{stat.label}</p>
+                                            {stat.subValue && <span className="text-[9px] font-black text-foreground/40 uppercase tracking-widest">{stat.subValue}</span>}
+                                        </div>
                                     </motion.div>
                                 ))}
                             </div>
 
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            {/* Revenue Chart */}
+                            <div className="bg-foreground/5 border border-foreground/10 rounded-2xl p-8">
+                                <div className="flex items-center justify-between mb-10">
+                                    <div>
+                                        <h3 className="text-sm font-black font-syncopate uppercase tracking-tight">Revenue Analytics</h3>
+                                        <p className="text-[10px] text-foreground/40 font-bold uppercase tracking-[0.2em] mt-1">Daily performance (Last 14 Days)</p>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-400/5 border border-emerald-400/10">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                            <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Revenue</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="h-64 flex items-end gap-2 md:gap-4">
+                                    {chartData.map((d, i) => {
+                                        const height = (d.value / maxChartValue) * 100;
+                                        return (
+                                            <div key={i} className="flex-1 flex flex-col items-center gap-4 group">
+                                                <div className="relative w-full flex-1 flex items-end justify-center">
+                                                    {/* Tooltip */}
+                                                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-foreground text-background px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-10 whitespace-nowrap shadow-2xl">
+                                                        ₹{d.value.toLocaleString()}
+                                                    </div>
+                                                    {/* Bar */}
+                                                    <motion.div 
+                                                        initial={{ height: 0 }}
+                                                        animate={{ height: `${height}%` }}
+                                                        transition={{ delay: i * 0.05, duration: 0.8 }}
+                                                        className={cn(
+                                                            "w-full max-w-[40px] rounded-t-lg transition-all duration-300",
+                                                            d.value > 0 ? "bg-emerald-400/20 group-hover:bg-emerald-400/40 border-t-2 border-emerald-400" : "bg-foreground/5"
+                                                        )}
+                                                    />
+                                                </div>
+                                                <span className="text-[8px] font-black text-foreground/30 uppercase tracking-tighter transform -rotate-45 md:rotate-0">
+                                                    {d.label}
+                                                </span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                                 {/* Low Stock Alert */}
                                 <div className="lg:col-span-1 bg-foreground/5 border border-foreground/10 rounded-2xl p-6">
                                     <div className="flex items-center justify-between mb-6">
@@ -388,7 +511,7 @@ export default function AdminDashboard() {
                                         {lowStockProducts.slice(0, 5).map(p => (
                                             <div key={p.id} className="flex items-center gap-4 p-3 rounded-xl bg-foreground/[0.03] border border-foreground/5">
                                                 <div className="w-10 h-12 rounded bg-foreground/5 overflow-hidden flex-shrink-0">
-                                                    <img src={p.image} className="w-full h-full object-cover" />
+                                                    <img src={p.images?.[0] || p.image} className="w-full h-full object-cover" />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-xs font-bold text-foreground truncate uppercase">{p.name}</p>
@@ -459,7 +582,7 @@ export default function AdminDashboard() {
                                             .map(p => (
                                                 <div key={p.id} className="flex items-center gap-4 p-3 rounded-xl bg-foreground/[0.03] border border-foreground/5">
                                                     <div className="w-10 h-12 rounded bg-foreground/5 overflow-hidden flex-shrink-0">
-                                                        <img src={p.image} className="w-full h-full object-cover" />
+                                                        <img src={p.images?.[0] || p.image} className="w-full h-full object-cover" />
                                                     </div>
                                                     <div className="flex-1 min-w-0">
                                                         <p className="text-xs font-bold text-foreground truncate uppercase">{p.name}</p>
@@ -479,8 +602,34 @@ export default function AdminDashboard() {
                                     </div>
                                 </div>
 
+                                {/* Best Sellers */}
+                                <div className="lg:col-span-1 bg-foreground/5 border border-foreground/10 rounded-2xl p-6">
+                                    <div className="flex items-center justify-between mb-6">
+                                        <h3 className="text-sm font-black font-syncopate uppercase">Best Sellers</h3>
+                                        <TrendingUp size={16} className="text-amber-400" />
+                                    </div>
+                                    <div className="space-y-4">
+                                        {bestSellers.map((product, idx) => (
+                                            <div key={idx} className="flex items-center gap-4 p-3 rounded-xl bg-foreground/[0.03] border border-foreground/5">
+                                                <div className="w-10 h-12 rounded bg-foreground/5 overflow-hidden flex-shrink-0">
+                                                    <img src={product.image} className="w-full h-full object-cover" />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-xs font-bold text-foreground truncate uppercase">{product.name}</p>
+                                                    <p className="text-[10px] text-amber-400 font-bold uppercase mt-0.5">
+                                                        {product.quantity} sold
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {bestSellers.length === 0 && (
+                                            <p className="text-center py-8 text-foreground/20 text-xs font-bold uppercase tracking-widest">No sales yet</p>
+                                        )}
+                                    </div>
+                                </div>
+
                                 {/* Recent Activity */}
-                                <div className="lg:col-span-3 bg-foreground/5 border border-foreground/10 rounded-2xl overflow-hidden">
+                                <div className="lg:col-span-4 bg-foreground/5 border border-foreground/10 rounded-2xl overflow-hidden">
                                     <div className="px-8 py-6 border-b border-foreground/5 flex items-center justify-between">
                                         <h3 className="text-sm font-black font-syncopate uppercase">Recent Activity</h3>
                                         <button className="text-[10px] font-black text-foreground/60 uppercase tracking-widest hover:text-foreground transition-colors">View All</button>
@@ -560,7 +709,7 @@ export default function AdminDashboard() {
                                             className="bg-foreground/5 border border-foreground/10 rounded-2xl overflow-hidden group hover:border-foreground/30 transition-all"
                                         >
                                             <div className="aspect-[4/5] relative overflow-hidden">
-                                                <img src={p.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                                                <img src={p.images?.[0] || p.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                                                 <div className="absolute top-4 right-4 flex gap-2">
                                                     <span className="bg-background/60 backdrop-blur-md text-[11px] font-black text-foreground uppercase tracking-widest px-5 py-2.5 rounded-full border border-foreground/10 shadow-xl">
                                                         ₹{p.price}
@@ -675,7 +824,7 @@ export default function AdminDashboard() {
                                                     <div className="flex -space-x-3">
                                                         {o.items?.slice(0, 3).map((item: any, idx: number) => (
                                                             <div key={idx} className="w-8 h-10 rounded border border-background bg-[#111] overflow-hidden">
-                                                                <img src={item.image} className="w-full h-full object-cover" />
+                                                                <img src={item.images?.[0] || item.image} className="w-full h-full object-cover" />
                                                             </div>
                                                         ))}
                                                         {o.items?.length > 3 && (
@@ -865,6 +1014,136 @@ export default function AdminDashboard() {
                                             )}
                                         </tbody>
                                     </table>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {tab === 'payments' && (
+                        <div className="space-y-6">
+                            <div className="bg-foreground/5 border border-foreground/10 p-8 rounded-2xl">
+                                <div className="flex flex-col md:flex-row gap-6 items-center justify-between mb-8">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-3 bg-indigo-500/10 rounded-2xl">
+                                            <CreditCard className="text-indigo-400" size={24} />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-black font-syncopate uppercase">UPI Verifications</h3>
+                                            <p className="text-[10px] text-foreground/40 font-bold uppercase tracking-[0.2em] mt-1">Confirm manual UPI transactions</p>
+                                        </div>
+                                    </div>
+                                    <div className="relative w-full md:w-96">
+                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/30" size={16} />
+                                        <input 
+                                            type="text" 
+                                            placeholder="SEARCH BY UTR OR NAME..." 
+                                            value={searchTerm}
+                                            onChange={(e) => setSearchTerm(e.target.value)}
+                                            className="w-full bg-foreground/5 border border-foreground/10 rounded-xl pl-12 pr-4 py-3 text-sm font-bold uppercase tracking-widest focus:outline-none focus:border-foreground/30 transition-all"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="bg-background/50 border border-foreground/5 rounded-2xl overflow-hidden">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full min-w-[1000px]">
+                                            <thead>
+                                                <tr className="border-b border-foreground/5">
+                                                    {['Customer', 'Products', 'Transaction ID (UTR)', 'Amount', 'Payment Status', 'Actions'].map(h => (
+                                                        <th key={h} className="text-left px-8 py-5 text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em]">{h}</th>
+                                                    ))}
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-foreground/5">
+                                                {orders
+                                                    .filter(o => o.paymentMethod === 'UPI Direct')
+                                                    .filter(o => {
+                                                        const searchLower = searchTerm.toLowerCase();
+                                                        return (o.transactionId || '').toLowerCase().includes(searchLower) || 
+                                                               (o.shippingAddress?.fullName || '').toLowerCase().includes(searchLower);
+                                                    })
+                                                    .map(o => {
+                                                        const isDuplicate = orders.some(other => 
+                                                            other._id !== o._id && 
+                                                            other.user?._id === o.user?._id && 
+                                                            other.totalPrice === o.totalPrice && 
+                                                            new Date(other.createdAt).toDateString() === new Date(o.createdAt).toDateString() &&
+                                                            !other.isPaid
+                                                        );
+
+                                                        return (
+                                                            <tr key={o._id} className="hover:bg-foreground/[0.02] transition-colors group">
+                                                                <td className="px-8 py-6">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <div className="w-8 h-8 rounded-full bg-foreground/5 flex items-center justify-center font-bold text-[10px] text-foreground/40">
+                                                                            {o.shippingAddress?.fullName?.[0]}
+                                                                        </div>
+                                                                        <div className="flex flex-col">
+                                                                            <div className="flex items-center gap-2">
+                                                                                <span className="text-xs font-black text-foreground uppercase">{o.shippingAddress?.fullName}</span>
+                                                                                {isDuplicate && (
+                                                                                    <span className="bg-amber-500/10 text-amber-500 text-[8px] font-black px-1.5 py-0.5 rounded border border-amber-500/20 uppercase tracking-tighter">
+                                                                                        Potential Duplicate
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+                                                                            <span className="text-[10px] text-foreground/40 font-bold uppercase">{o.shippingAddress?.email}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                            <td className="px-8 py-6">
+                                                                <div className="flex flex-col gap-1">
+                                                                    {o.items?.map((item: any, idx: number) => (
+                                                                        <span key={idx} className="text-[10px] font-bold text-foreground/60 uppercase truncate max-w-[200px]">
+                                                                            {item.name} <span className="text-foreground/30">×{item.quantity}</span>
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-8 py-6">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-xs font-mono font-black text-indigo-400 select-all bg-indigo-400/5 px-3 py-1 rounded-lg border border-indigo-400/10 tracking-wider">
+                                                                        {o.transactionId || 'NO ID SUBMITTED'}
+                                                                    </span>
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-8 py-6 text-sm font-black text-foreground tracking-tight">₹{o.totalPrice}</td>
+                                                            <td className="px-8 py-6">
+                                                                <span className={`text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1.5 rounded-full ${
+                                                                    o.isPaid ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                                                }`}>
+                                                                    {o.isPaid ? 'CONFIRMED' : 'WAITING VERIFICATION'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-8 py-6">
+                                                                {!o.isPaid ? (
+                                                                    <button 
+                                                                        onClick={() => updateOrderStatus(o._id, { isPaid: true })}
+                                                                        disabled={isSaving}
+                                                                        className="flex items-center gap-2 bg-emerald-500 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-500/20 disabled:opacity-50"
+                                                                    >
+                                                                        Confirm Payment
+                                                                    </button>
+                                                                ) : (
+                                                                    <div className="flex items-center gap-2 text-emerald-400">
+                                                                        <Star size={14} fill="currentColor" />
+                                                                        <span className="text-[9px] font-black uppercase tracking-widest">Verified</span>
+                                                                    </div>
+                                                                )}
+                                                            </td>
+                                                        </tr>
+                                                        );
+                                                    })}
+                                                {orders.filter(o => o.paymentMethod === 'UPI Direct').length === 0 && (
+                                                    <tr>
+                                                        <td colSpan={6} className="px-8 py-20 text-center text-xs font-bold text-foreground/30 uppercase tracking-[0.3em]">
+                                                            No UPI Direct payments found
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         </div>

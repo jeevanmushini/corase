@@ -25,10 +25,10 @@ export async function POST(req: Request) {
       ...body,
       id: newId,
       title: body.name || body.title,
-      images: body.image ? [body.image] : (body.images || []),
+      images: body.images || (body.image ? [body.image] : []),
     };
     
-    // Remove name and image if they were mapped to title and images
+    // Remove frontend-only fields
     delete productData.name;
     delete productData.image;
 

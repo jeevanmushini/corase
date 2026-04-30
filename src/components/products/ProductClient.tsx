@@ -4,10 +4,11 @@ import React, { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowLeft, Heart, Minus, Plus, Truck, RotateCcw, Shield } from "lucide-react";
+import { ArrowLeft, Heart, Minus, Plus, Truck, RotateCcw, Shield, ChevronLeft, ChevronRight } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 interface ProductClientProps {
   productId: string;
@@ -21,8 +22,9 @@ export default function ProductClient({ productId, initialProduct }: ProductClie
   const [selectedSize, setSelectedSize] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [sizeError, setSizeError] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  const { addToCart, setIsOpen } = useCart();
+  const { addToCart, setIsOpen, setBuyNowItem } = useCart();
   const { toggleWishlist, isWishlisted } = useWishlist();
   const router = useRouter();
 
@@ -93,7 +95,7 @@ export default function ProductClient({ productId, initialProduct }: ProductClie
       productId: product.id,
       name: product.name,
       price: product.price,
-      image: product.image,
+      image: product.images?.[0] || product.image,
       selectedSize: selectedSize,
       quantity: quantity,
     };
@@ -106,17 +108,29 @@ export default function ProductClient({ productId, initialProduct }: ProductClie
       return;
     }
     setSizeError(false);
-    const cartProduct = {
+    const buyProduct = {
       productId: product.id,
       name: product.name,
       price: product.price,
-      image: product.image,
+      image: product.images?.[0] || product.image,
       selectedSize: selectedSize,
       quantity: quantity,
     };
-    addToCart(cartProduct);
+    setBuyNowItem(buyProduct);
     setIsOpen(false);
     router.push("/checkout");
+  };
+
+  const nextImage = () => {
+    if (product.images?.length > 1) {
+      setCurrentImageIndex((prev) => (prev + 1) % product.images.length);
+    }
+  };
+
+  const prevImage = () => {
+    if (product.images?.length > 1) {
+      setCurrentImageIndex((prev) => (prev - 1 + product.images.length) % product.images.length);
+    }
   };
 
   return (
@@ -143,22 +157,95 @@ export default function ProductClient({ productId, initialProduct }: ProductClie
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
+            className="flex flex-col gap-6"
           >
-            <div className="relative aspect-[3/4] bg-[#0a0a0a] rounded-sm overflow-hidden lg:sticky lg:top-28">
-              <Image
-                src={product.image}
-                alt={product.name}
-                fill
-                sizes="(max-width: 1024px) 100vw, 50vw"
-                className="object-cover"
-                priority
-              />
-              {product.isNewDrop && (
-                <span className="absolute top-5 left-5 text-[10px] font-bold tracking-[0.2em] uppercase text-white bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-sm">
-                  New Drop
+            <div className="relative aspect-[3/4] bg-[#0a0a0a] rounded-sm overflow-hidden lg:sticky lg:top-28 shadow-2xl">
+              <div className="absolute inset-0 flex items-center justify-center">
+                <motion.div 
+                  key={currentImageIndex}
+                  initial={{ opacity: 0, scale: 1.05 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5 }}
+                  className="relative w-full h-full"
+                >
+                  <Image
+                    src={product.images?.[currentImageIndex] || product.image}
+                    alt={product.name}
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 50vw"
+                    className="object-cover"
+                    priority
+                  />
+                </motion.div>
+              </div>
+
+              {/* Slider Controls */}
+              {product.images?.length > 1 && (
+                <>
+                  <div className="absolute inset-0 flex items-center justify-between px-4 opacity-0 hover:opacity-100 transition-opacity">
+                    <button 
+                      onClick={(e) => { e.preventDefault(); prevImage(); }}
+                      className="p-3 rounded-full bg-black/40 backdrop-blur-md text-white border border-white/10 hover:bg-white hover:text-black transition-all shadow-xl"
+                    >
+                      <ChevronLeft size={20} />
+                    </button>
+                    <button 
+                      onClick={(e) => { e.preventDefault(); nextImage(); }}
+                      className="p-3 rounded-full bg-black/40 backdrop-blur-md text-white border border-white/10 hover:bg-white hover:text-black transition-all shadow-xl"
+                    >
+                      <ChevronRight size={20} />
+                    </button>
+                  </div>
+
+                  {/* Indicators */}
+                  <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
+                    {product.images.map((_: any, i: number) => (
+                      <button
+                        key={i}
+                        onClick={() => setCurrentImageIndex(i)}
+                        className={`h-1 rounded-full transition-all duration-500 ${
+                          currentImageIndex === i ? "w-8 bg-white" : "w-2 bg-white/20"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {product.status && product.status !== "none" && product.status.trim() !== "" && (
+                <span className={cn(
+                  "absolute top-5 left-5 text-[10px] font-bold tracking-[0.2em] uppercase text-white bg-black/60 backdrop-blur-sm px-3 py-1.5 rounded-sm border border-white/10 shadow-lg z-10",
+                  product.status.toLowerCase().includes("coming") && "text-indigo-400 border-indigo-500/30",
+                  product.status.toLowerCase().includes("limited") && "text-amber-400 border-amber-500/30",
+                  product.status.toLowerCase().includes("sold") && "text-neutral-500 border-neutral-700"
+                )}>
+                  {product.status}
                 </span>
               )}
             </div>
+
+            {/* Thumbnails */}
+            {product.images?.length > 1 && (
+              <div className="grid grid-cols-5 gap-3">
+                {product.images.map((img: string, i: number) => (
+                  <button
+                    key={i}
+                    onClick={() => setCurrentImageIndex(i)}
+                    className={`relative aspect-square rounded-sm overflow-hidden border-2 transition-all ${
+                      currentImageIndex === i ? "border-white scale-95 shadow-lg" : "border-transparent opacity-40 hover:opacity-100"
+                    }`}
+                  >
+                    <Image
+                      src={img}
+                      alt={`${product.name} ${i + 1}`}
+                      fill
+                      sizes="100px"
+                      className="object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </motion.div>
 
           {/* Product Info */}

@@ -13,6 +13,7 @@ const ProductSchema = new mongoose.Schema(
     price: { type: Number, required: true },
     description: { type: String, required: true },
     images: { type: [String], required: true },
+    category: { type: String, default: "Tshirts" },
     variants: [
       {
         size: { type: String, required: true },

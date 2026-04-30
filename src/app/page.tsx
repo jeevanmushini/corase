@@ -16,8 +16,6 @@ const fadeUp = {
   transition: { duration: 0.8, ease: "easeOut" as const },
 };
 
-// Local ProductCard removed
-
 export default function Home() {
   const { data: session } = useSession();
   const isAdmin = (session?.user as any)?.role === "admin";
@@ -56,8 +54,13 @@ export default function Home() {
     );
   }
 
-  const trendingProducts = products.filter((p: any) => p.isFeatured).slice(0, 4);
-  const newArrivals = products.filter((p: any) => p.isNewDrop).slice(0, 4);
+  const trendingProducts = products.filter((p: any) => 
+    p.isFeatured || (p.status && p.status.toLowerCase().includes("trending"))
+  ).slice(0, 4);
+
+  const newArrivals = products.filter((p: any) => 
+    p.isNewDrop || (p.status && (p.status.toLowerCase().includes("new") || p.status.toLowerCase().includes("drop")))
+  ).slice(0, 4);
 
   return (
     <div className="bg-background min-h-screen text-foreground">

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Heart, ThumbsUp } from "lucide-react";
 import { useWishlist } from "@/context/WishlistContext";
+import { cn } from "@/lib/utils";
 
 interface ProductCardProps {
   product: any;
@@ -67,10 +68,23 @@ export default function ProductCard({ product, onSelect, onEdit, isAdmin, priori
             priority={priority}
             className="object-cover transition-transform duration-1000 group-hover:scale-110 opacity-90 group-hover:opacity-100"
           />
-          {product.isNewDrop && (
-            <span className="absolute top-4 left-4 text-[9px] font-black text-white tracking-[0.3em] uppercase bg-brand-red px-3 py-1.5 rounded-lg shadow-lg">
-              New Drop
-            </span>
+          {product.status && product.status !== "none" && product.status.trim() !== "" && (
+            <div className={cn(
+              "absolute top-4 left-4 text-[8px] font-black tracking-[0.25em] uppercase px-3 py-1.5 rounded-full z-20 flex items-center gap-2 border backdrop-blur-md shadow-2xl transition-all duration-500",
+              product.status.toLowerCase().includes("coming") ? "bg-red-600 border-red-600 text-white" :
+              product.status.toLowerCase().includes("limited") ? "bg-amber-500/10 border-amber-500/20 text-amber-400" :
+              product.status.toLowerCase().includes("sold") ? "bg-red-500/10 border-red-500/20 text-red-400" :
+              "bg-foreground/10 border-foreground/20 text-foreground"
+            )}>
+              <span className={cn(
+                "w-1 h-1 rounded-full",
+                product.status.toLowerCase().includes("coming") ? "bg-white animate-pulse" :
+                product.status.toLowerCase().includes("limited") ? "bg-amber-400" :
+                product.status.toLowerCase().includes("sold") ? "bg-red-400" :
+                "bg-foreground"
+              )} />
+              {product.status}
+            </div>
           )}
           
           <button

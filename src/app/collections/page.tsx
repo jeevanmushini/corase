@@ -130,15 +130,24 @@ const CollectionsPage = () => {
                                     onClick={() => setSelectedProduct(product)}
                                 >
                                     {/* Badges */}
-                                    {product.isFeatured && (
-                                        <div className="absolute top-2.5 left-2.5 z-10 flex items-center space-x-1 bg-foreground px-2 py-0.5 rounded-full">
-                                            <Star size={7} fill="currentColor" className="text-background" />
-                                            <span className="text-[7px] font-black text-background tracking-widest uppercase">Featured</span>
-                                        </div>
-                                    )}
-                                    {product.isNewDrop && (
-                                        <div className={cn("absolute z-10 bg-[#e6ff00] px-2 py-0.5 rounded-full", product.isFeatured ? "top-2.5 right-2.5" : "top-2.5 right-2.5")}>
-                                            <span className="text-[7px] font-black text-background tracking-widest uppercase">New</span>
+                                    {product.status && product.status !== "none" && product.status.trim() !== "" && (
+                                        <div className={cn(
+                                            "absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full border backdrop-blur-md shadow-2xl transition-all duration-500",
+                                            product.status.toLowerCase().includes("coming") ? "bg-red-600 border-red-600 text-white" :
+                                            product.status.toLowerCase().includes("limited") ? "bg-amber-500/10 border-amber-500/20 text-amber-400" :
+                                            product.status.toLowerCase().includes("sold") ? "bg-red-500/10 border-red-500/20 text-red-400" :
+                                            "bg-foreground/10 border-foreground/20 text-foreground"
+                                        )}>
+                                            <span className={cn(
+                                                "w-1 h-1 rounded-full",
+                                                product.status.toLowerCase().includes("coming") ? "bg-white animate-pulse" :
+                                                product.status.toLowerCase().includes("limited") ? "bg-amber-400" :
+                                                product.status.toLowerCase().includes("sold") ? "bg-red-400" :
+                                                "bg-foreground"
+                                            )} />
+                                            <span className="text-[7px] font-black tracking-[0.2em] uppercase">
+                                                {product.status}
+                                            </span>
                                         </div>
                                     )}
 

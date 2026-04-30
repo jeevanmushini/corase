@@ -8,6 +8,7 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import { filterSizesByCategory } from '@/lib/sizeUtils';
 
 interface Review {
     _id: string;
@@ -25,7 +26,7 @@ interface ProductModalProps {
 const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
     const [selectedSize, setSelectedSize] = useState<string>('');
     const [isAdding, setIsAdding] = useState(false);
-    const { addToCart, setIsOpen } = useCart();
+    const { addToCart, setIsOpen, setBuyNowItem } = useCart();
     const router = useRouter();
     const { data: session } = useSession();
 
@@ -59,7 +60,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
                 productId: product!.id,
                 name: product!.name,
                 price: product!.price,
-                image: product!.image,
+                image: product!.images?.[0] || product!.image,
                 selectedSize: selectedSize,
                 quantity: 1
             });
@@ -71,17 +72,33 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
     const handleBuyNow = () => {
         if (!selectedSize) return;
         
-        addToCart({
+        setBuyNowItem({
             productId: product!.id,
             name: product!.name,
             price: product!.price,
-            image: product!.image,
+            image: product!.images?.[0] || product!.image,
             selectedSize: selectedSize,
             quantity: 1
         });
         setIsOpen(false);
         onClose();
         router.push('/checkout');
+    };
+
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+    const nextImage = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (product?.images?.length) {
+            setCurrentImageIndex((prev) => (prev + 1) % product.images.length);
+        }
+    };
+
+    const prevImage = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (product?.images?.length) {
+            setCurrentImageIndex((prev) => (prev - 1 + product.images.length) % product.images.length);
+        }
     };
 
     const handleSubmitReview = async () => {
@@ -155,25 +172,59 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
                         </button>
 
                         {/* Image Section */}
-                        <div className="flex-1 relative bg-white/5 flex items-center justify-center p-6 md:p-12 overflow-hidden min-h-[300px] md:min-h-0">
+                        <div className="flex-1 relative bg-white/5 flex items-center justify-center p-6 md:p-12 overflow-hidden min-h-[300px] md:min-h-0 group/gallery">
                             <div 
                                 className="absolute inset-0 opacity-10 blur-[120px]" 
                                 style={{ backgroundColor: product.color }}
                             />
                             <motion.div 
+                                key={currentImageIndex}
                                 initial={{ opacity: 0, scale: 0.8 }}
                                 animate={{ opacity: 1, scale: 1 }}
-                                transition={{ delay: 0.2, duration: 0.8 }}
+                                transition={{ duration: 0.8 }}
                                 className="relative w-full h-full"
                             >
                                 <Image 
-                                    src={product.image} 
+                                    src={product.images?.[currentImageIndex] || product.image} 
                                     alt={product.name} 
                                     fill 
                                     sizes="(max-width: 768px) 100vw, 50vw"
                                     className="object-contain drop-shadow-[0_20px_60px_rgba(0,0,0,0.1)]"
+                                    priority
                                 />
                             </motion.div>
+
+                            {/* Slider Controls */}
+                            {product.images && product.images.length > 1 && (
+                                <>
+                                    <button 
+                                        onClick={prevImage}
+                                        className="absolute left-6 top-1/2 -translate-y-1/2 p-4 rounded-full bg-background/50 backdrop-blur-md text-foreground/40 hover:text-foreground hover:bg-background transition-all opacity-0 group-hover/gallery:opacity-100 hidden md:flex"
+                                    >
+                                        <ArrowRight size={24} className="rotate-180" />
+                                    </button>
+                                    <button 
+                                        onClick={nextImage}
+                                        className="absolute right-6 top-1/2 -translate-y-1/2 p-4 rounded-full bg-background/50 backdrop-blur-md text-foreground/40 hover:text-foreground hover:bg-background transition-all opacity-0 group-hover/gallery:opacity-100 hidden md:flex"
+                                    >
+                                        <ArrowRight size={24} />
+                                    </button>
+
+                                    {/* Indicators */}
+                                    <div className="absolute bottom-10 left-1/2 -translate-x-1/2 flex gap-2">
+                                        {product.images.map((_: any, i: number) => (
+                                            <button
+                                                key={i}
+                                                onClick={() => setCurrentImageIndex(i)}
+                                                className={cn(
+                                                    "h-1 rounded-full transition-all duration-500",
+                                                    currentImageIndex === i ? "w-8 bg-foreground" : "w-2 bg-foreground/20"
+                                                )}
+                                            />
+                                        ))}
+                                    </div>
+                                </>
+                            )}
                             
                             {/* Watermark Logo */}
                             <div className="absolute bottom-6 left-6 md:bottom-10 md:left-10 text-[12vw] md:text-[8vw] font-bold font-syncopate tracking-tighter opacity-[0.02] select-none pointer-events-none text-foreground">
@@ -195,10 +246,25 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
                                             Collection 26
                                         </span>
                                     </div>
-                                    {product.isNewDrop && (
-                                        <span className="px-2 md:px-3 py-1 bg-[#e6ff00] text-black text-[8px] md:text-[9px] font-black tracking-widest uppercase rounded-full shadow-[0_0_15px_rgba(230,255,0,0.3)]">
-                                            New Drop
-                                        </span>
+                                    {product.status && product.status !== "none" && product.status.trim() !== "" && (
+                                        <div className={cn(
+                                            "flex items-center gap-2 px-3 py-1.5 rounded-full border backdrop-blur-md shadow-xl transition-all duration-500",
+                                            product.status.toLowerCase().includes("coming") ? "bg-red-600 border-red-600 text-white" :
+                                            product.status.toLowerCase().includes("limited") ? "bg-amber-500/10 border-amber-500/20 text-amber-400" :
+                                            product.status.toLowerCase().includes("sold") ? "bg-red-500/10 border-red-500/20 text-red-400" :
+                                            "bg-foreground/10 border-foreground/20 text-foreground"
+                                        )}>
+                                            <span className={cn(
+                                                "w-1 h-1 rounded-full",
+                                                product.status.toLowerCase().includes("coming") ? "bg-white animate-pulse" :
+                                                product.status.toLowerCase().includes("limited") ? "bg-amber-400" :
+                                                product.status.toLowerCase().includes("sold") ? "bg-red-400" :
+                                                "bg-foreground"
+                                            )} />
+                                            <span className="text-[8px] md:text-[9px] font-black tracking-[0.2em] uppercase">
+                                                {product.status}
+                                            </span>
+                                        </div>
                                     )}
                                 </div>
                                 
@@ -225,9 +291,12 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
                                             <p className="text-[10px] font-bold text-foreground uppercase underline cursor-pointer hover:text-foreground transition-colors">Size Guide</p>
                                         </div>
                                         <div className="grid grid-cols-4 gap-3">
-                                            {(product.variants || product.sizes || []).map((v: any) => {
-                                                const size = typeof v === 'string' ? v : v.size;
-                                                const isOutOfStock = typeof v === 'string' ? false : v.stock === 0;
+                                            {filterSizesByCategory(
+                                                (product.variants || product.sizes || []).map((v: any) => typeof v === 'string' ? v : v.size),
+                                                product.category
+                                            ).map((size: string) => {
+                                                const variant = product.variants?.find((v: any) => (typeof v === 'string' ? v : v.size) === size);
+                                                const isOutOfStock = typeof variant === 'string' ? false : variant?.stock === 0;
                                                 return (
                                                     <button
                                                         key={size}

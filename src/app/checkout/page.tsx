@@ -29,7 +29,9 @@ const PAYMENT_OPTIONS = [
 export default function CheckoutPage() {
     const { 
         cart, totalPrice, clearCart, 
-        appliedCoupon, applyCoupon, removeCoupon, discountedTotal 
+        appliedCoupon, applyCoupon, removeCoupon, discountedTotal,
+        checkoutItems, checkoutTotal, checkoutDiscountedTotal,
+        buyNowItem, clearBuyNowItem
     } = useCart();
     const { data: session } = useSession();
     const router = useRouter();
@@ -53,8 +55,8 @@ export default function CheckoutPage() {
     const [utr, setUtr] = useState('');
     const [isConfirming, setIsConfirming] = useState(false);
 
-    const shipping = cart.length > 0 && discountedTotal < 1000 ? 99 : 0;
-    const finalTotal = discountedTotal + shipping;
+    const shipping = checkoutItems.length > 0 && checkoutDiscountedTotal < 1000 ? 99 : 0;
+    const finalTotal = checkoutDiscountedTotal + shipping;
 
     const handlePayment = async () => {
         if (!session) {
@@ -77,7 +79,7 @@ export default function CheckoutPage() {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    items: cart,
+                    items: checkoutItems,
                     shippingAddress: {
                         fullName: form.name,
                         email: form.email,
@@ -87,10 +89,10 @@ export default function CheckoutPage() {
                         zipCode: form.pincode,
                         country: "India"
                     },
-                    subtotal: totalPrice,
+                    subtotal: checkoutTotal,
                     shippingPrice: shipping,
                     totalPrice: finalTotal,
-                    discount: totalPrice - discountedTotal,
+                    discount: checkoutTotal - checkoutDiscountedTotal,
                     coupon: appliedCoupon?.code,
                     paymentMethod: paymentMethod, // Send selected method
                 }),
@@ -132,7 +134,11 @@ export default function CheckoutPage() {
 
                     if (verifyRes.ok) {
                         setSuccessOrderId(orderData.orderId);
-                        clearCart();
+                        if (buyNowItem) {
+                            clearBuyNowItem();
+                        } else {
+                            clearCart();
+                        }
                         setStep('success');
                     } else {
                         alert("Payment verification failed. Please contact support.");
@@ -181,7 +187,11 @@ export default function CheckoutPage() {
 
             if (res.ok) {
                 setSuccessOrderId(pendingOrderId);
-                clearCart();
+                if (buyNowItem) {
+                    clearBuyNowItem();
+                } else {
+                    clearCart();
+                }
                 setStep('success');
                 setShowUpiModal(false);
             } else {
@@ -336,9 +346,9 @@ export default function CheckoutPage() {
 
                             {/* Cart items */}
                             <div className="space-y-3 mb-5 max-h-52 overflow-y-auto pr-1">
-                                {cart.length === 0 ? (
+                                {checkoutItems.length === 0 ? (
                                     <p className="text-white/25 text-sm font-medium text-center py-6">Your cart is empty</p>
-                                ) : cart.map(item => (
+                                ) : checkoutItems.map(item => (
                                     <div key={`${item.productId}-${item.selectedSize}`} className="flex items-center gap-3">
                                         <div className="relative w-12 h-12 bg-white/[0.06] rounded-lg overflow-hidden flex-shrink-0">
                                             <Image src={item.image} alt={item.name} fill sizes="48px" className="object-contain p-1" />
@@ -396,12 +406,12 @@ export default function CheckoutPage() {
                             <div className="space-y-2.5 border-t border-white/[0.07] pt-4 mb-5">
                                 <div className="flex justify-between text-sm text-white/70 font-medium">
                                     <span>Subtotal</span>
-                                    <span>₹{totalPrice}</span>
+                                    <span>₹{checkoutTotal}</span>
                                 </div>
                                 {appliedCoupon && (
                                     <div className="flex justify-between text-sm font-medium text-emerald-400">
                                         <span>Discount</span>
-                                        <span>-₹{totalPrice - discountedTotal}</span>
+                                        <span>-₹{checkoutTotal - checkoutDiscountedTotal}</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between text-sm font-medium">
@@ -416,7 +426,7 @@ export default function CheckoutPage() {
                                 </div>
                             </div>
 
-                            {shipping === 0 && cart.length > 0 && (
+                            {shipping === 0 && checkoutItems.length > 0 && (
                                 <p className="text-emerald-400 text-xs font-bold text-center bg-emerald-500/10 rounded-lg py-2 mb-4">
                                     🎉 You qualify for free shipping!
                                 </p>
@@ -424,10 +434,10 @@ export default function CheckoutPage() {
 
                             <button
                                 onClick={handlePayment}
-                                disabled={cart.length === 0 || isLoading}
+                                disabled={checkoutItems.length === 0 || isLoading}
                                 className="w-full flex items-center justify-center gap-3 bg-white text-black py-3.5 rounded-xl font-black font-syncopate text-xs tracking-[0.15em] uppercase hover:bg-gray-200 hover:shadow-[0_8px_40px_rgba(255,255,255,0.2)] transition-all duration-300 active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed"
                             >
-                                {isLoading ? "Processing..." : "Pay with Razorpay"}
+                                {isLoading ? "Processing..." : "Place Order"}
                             </button>
                         </div>
                     </div>

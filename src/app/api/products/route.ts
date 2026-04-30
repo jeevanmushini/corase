@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     // Lean projection — only fetch fields the client needs
     const rawProducts = await Product.find(query)
       .sort({ createdAt: -1 })
-      .select("id title price description images category variants isNewDrop isFeatured")
+      .select("id title price description images category variants isNewDrop isFeatured status")
       .lean();
 
     const products = (rawProducts as any[]).map((p) => ({
@@ -28,12 +28,14 @@ export async function GET(request: Request) {
       name: p.title,
       price: p.price,
       description: p.description,
-      image: p.images[0],
+      images: p.images || [],
+      image: p.images?.[0] || "",
       category: p.category || "Tshirts",
       variants: p.variants,
       sizes: p.variants.map((v: any) => v.size),
       isNewDrop: p.isNewDrop,
       isFeatured: p.isFeatured,
+      status: p.status || "none",
       color: "#ffffff",
     }));
 

@@ -24,7 +24,15 @@ export async function PATCH(
     // Map frontend fields to DB fields
     const updateData: any = { ...body };
     if (body.name) updateData.title = body.name;
-    if (body.image) updateData.images = [body.image];
+    if (body.images) {
+      updateData.images = body.images;
+    } else if (body.image) {
+      updateData.images = [body.image];
+    }
+    
+    // Remove frontend-only fields
+    delete updateData.name;
+    delete updateData.image;
     
     const product = await Product.findOneAndUpdate({ id }, updateData, { new: true });
     

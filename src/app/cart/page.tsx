@@ -8,7 +8,7 @@ import { Minus, Plus, X, ArrowLeft, ShoppingBag, ArrowRight } from "lucide-react
 import { useCart } from "@/context/CartContext";
 
 export default function CartPage() {
-  const { cart, removeFromCart, updateQuantity, totalItems, totalPrice, clearCart } = useCart();
+  const { cart, removeFromCart, updateQuantity, totalItems, totalPrice, clearCart, clearBuyNowItem } = useCart();
 
   if (cart.length === 0) {
     return (
@@ -199,6 +199,7 @@ export default function CartPage() {
 
               <Link
                 href="/checkout"
+                onClick={clearBuyNowItem}
                 className="block w-full bg-white text-black py-4 rounded-sm font-black text-xs tracking-[0.2em] uppercase hover:bg-gray-200 transition-colors text-center mb-4"
               >
                 Proceed to Checkout

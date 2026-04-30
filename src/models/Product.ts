@@ -15,6 +15,7 @@ export interface IProduct extends Document {
   variants: IProductVariant[];
   isNewDrop: boolean;
   isFeatured: boolean;
+  status?: string;
 }
 
 const ProductSchema: Schema<IProduct> = new Schema(
@@ -33,6 +34,7 @@ const ProductSchema: Schema<IProduct> = new Schema(
     ],
     isNewDrop: { type: Boolean, default: false },
     isFeatured: { type: Boolean, default: false },
+    status: { type: String, default: "none" },
   },
   {
     timestamps: true,

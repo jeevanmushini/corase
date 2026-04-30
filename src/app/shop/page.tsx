@@ -12,6 +12,7 @@ import ProductCard from "@/components/products/ProductCard";
 import ImageUpload from "@/components/admin/ImageUpload";
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
+import { getAvailableSizesByCategory, filterSizesByCategory } from "@/lib/sizeUtils";
 
 const CATEGORIES = ["All", "Tshirts", "Hoodies", "Bottoms", "Outerwear", "Accessories"];
 const SIZES = ["S", "M", "L", "XL", "XXL"];
@@ -119,7 +120,11 @@ function ShopPageInner() {
         result.sort((a, b) => a.name.localeCompare(b.name));
         break;
       default:
-        result.sort((a, b) => (b.isNewDrop ? 1 : 0) - (a.isNewDrop ? 1 : 0));
+        result.sort((a, b) => {
+          const aNew = a.isNewDrop || (a.status && (a.status.toLowerCase().includes("new") || a.status.toLowerCase().includes("latest")));
+          const bNew = b.isNewDrop || (b.status && (b.status.toLowerCase().includes("new") || b.status.toLowerCase().includes("latest")));
+          return (bNew ? 1 : 0) - (aNew ? 1 : 0);
+        });
     }
 
     return result;
@@ -272,7 +277,7 @@ function ShopPageInner() {
                       Size
                     </p>
                     <div className="flex flex-nowrap overflow-x-auto pb-2 gap-2 scrollbar-hide -mx-2 px-2">
-                      {SIZES.map((size) => (
+                      {getAvailableSizesByCategory(activeCategory).map((size) => (
                         <button
                           key={size}
                           onClick={() =>
@@ -407,20 +412,27 @@ function ShopPageInner() {
                       <Package size={12} /> Stock by Size
                     </label>
                     <div className="grid grid-cols-4 gap-2">
-                      {editingProduct.variants?.map((v: any, idx: number) => (
-                        <div key={v.size} className="bg-foreground/5 border border-foreground/10 p-2 rounded-lg text-center">
-                          <p className="text-[9px] font-black text-foreground/30 uppercase mb-1">{v.size}</p>
-                          <input 
-                            type="number" value={v.stock} 
-                            onChange={(e) => {
-                              const newVariants = [...editingProduct.variants];
-                              newVariants[idx].stock = Number(e.target.value);
-                              setEditingProduct({...editingProduct, variants: newVariants});
-                            }}
-                            className="w-full bg-transparent text-center text-foreground font-bold text-xs focus:outline-none"
-                          />
-                        </div>
-                      ))}
+                      {filterSizesByCategory(
+                        editingProduct.variants?.map((v: any) => v.size) || [],
+                        editingProduct.category
+                      ).map((size: string) => {
+                        const v = editingProduct.variants.find((variant: any) => variant.size === size);
+                        const idx = editingProduct.variants.indexOf(v);
+                        return (
+                          <div key={size} className="bg-foreground/5 border border-foreground/10 p-2 rounded-lg text-center">
+                            <p className="text-[9px] font-black text-foreground/30 uppercase mb-1">{size}</p>
+                            <input 
+                              type="number" value={v.stock} 
+                              onChange={(e) => {
+                                const newVariants = [...editingProduct.variants];
+                                newVariants[idx].stock = Number(e.target.value);
+                                setEditingProduct({...editingProduct, variants: newVariants});
+                              }}
+                              className="w-full bg-transparent text-center text-foreground font-bold text-xs focus:outline-none"
+                            />
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                   <ImageUpload 
@@ -435,6 +447,15 @@ function ShopPageInner() {
                     <input 
                       type="text" value={editingProduct.image} 
                       onChange={(e) => setEditingProduct({...editingProduct, image: e.target.value})}
+                      className="w-full bg-foreground/5 border border-foreground/10 rounded-lg px-4 py-2.5 text-foreground focus:border-foreground focus:outline-none transition-all"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-foreground/40">Product Status</label>
+                    <input 
+                      type="text" value={editingProduct.status === 'none' ? '' : editingProduct.status} 
+                      onChange={(e) => setEditingProduct({...editingProduct, status: e.target.value})}
+                      placeholder="e.g. New Drop, Coming Soon"
                       className="w-full bg-foreground/5 border border-foreground/10 rounded-lg px-4 py-2.5 text-foreground focus:border-foreground focus:outline-none transition-all"
                     />
                   </div>

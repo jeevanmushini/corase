@@ -16,10 +16,11 @@ const AdminProductModal: React.FC<AdminProductModalProps> = ({ product, onClose,
         category: '',
         price: 0,
         description: '',
-        image: '',
+        images: [],
         variants: [{ size: 'S', stock: 0 }, { size: 'M', stock: 0 }, { size: 'L', stock: 0 }, { size: 'XL', stock: 0 }],
         isNewDrop: false,
-        isFeatured: false
+        isFeatured: false,
+        status: 'none'
     });
     const [isUploading, setIsUploading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
@@ -29,32 +30,40 @@ const AdminProductModal: React.FC<AdminProductModalProps> = ({ product, onClose,
             setFormData({
                 ...product,
                 name: product.name || product.title || '',
-                image: product.image || (product.images && product.images[0]) || ''
+                images: product.images || (product.image ? [product.image] : []),
+                status: product.status || 'none'
             });
         }
     }, [product]);
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
 
         setIsUploading(true);
-        const data = new FormData();
-        data.append('file', file);
-
         try {
-            const res = await fetch('/api/admin/upload', {
-                method: 'POST',
-                body: data
-            });
-            const { url } = await res.json();
-            setFormData({ ...formData, image: url });
+            const uploadedUrls = [];
+            for (let i = 0; i < files.length; i++) {
+                const data = new FormData();
+                data.append('file', files[i]);
+                const res = await fetch('/api/admin/upload', {
+                    method: 'POST',
+                    body: data
+                });
+                const { url } = await res.json();
+                uploadedUrls.push(url);
+            }
+            setFormData({ ...formData, images: [...(formData.images || []), ...uploadedUrls] });
         } catch (error) {
             console.error("Upload failed:", error);
             alert("Upload failed");
         } finally {
             setIsUploading(false);
         }
+    };
+
+    const removeImage = (index: number) => {
+        setFormData({ ...formData, images: formData.images.filter((_: any, i: number) => i !== index) });
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -146,27 +155,41 @@ const AdminProductModal: React.FC<AdminProductModalProps> = ({ product, onClose,
                             </div>
 
                             <div className="space-y-4">
-                                <label className="text-[10px] text-white/70 font-black uppercase tracking-widest mb-2 block">Product Image</label>
-                                <div className="aspect-[4/5] bg-white/5 border border-white/10 rounded-[14px] relative overflow-hidden flex items-center justify-center group cursor-pointer">
-                                    {formData.image ? (
-                                        <img src={formData.image} className="w-full h-full object-cover" />
-                                    ) : (
+                                <label className="text-[10px] text-white/70 font-black uppercase tracking-widest mb-2 block">Product Images</label>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {(formData.images || []).map((img: string, i: number) => (
+                                        <div key={i} className="aspect-[4/5] bg-white/5 border border-white/10 rounded-[14px] relative overflow-hidden group">
+                                            <img src={img} className="w-full h-full object-cover" />
+                                            <button 
+                                                type="button"
+                                                onClick={() => removeImage(i)}
+                                                className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                                            >
+                                                <Trash2 size={12} />
+                                            </button>
+                                            {i === 0 && (
+                                                <span className="absolute bottom-2 left-2 px-2 py-1 bg-white/20 backdrop-blur-md text-[8px] font-black text-white uppercase tracking-widest rounded-md border border-white/10">Main</span>
+                                            )}
+                                        </div>
+                                    ))}
+                                    <div className="aspect-[4/5] bg-white/5 border border-white/10 border-dashed rounded-[14px] relative overflow-hidden flex items-center justify-center group cursor-pointer hover:bg-white/[0.08] transition-all">
                                         <div className="flex flex-col items-center gap-2 text-white/40 group-hover:text-white/70 transition-colors">
-                                            <ImageIcon size={32} />
-                                            <span className="text-[10px] font-black uppercase tracking-widest">Click to upload</span>
+                                            <ImageIcon size={24} />
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-center px-4">Add Images</span>
                                         </div>
-                                    )}
-                                    <input 
-                                        type="file" 
-                                        accept="image/*"
-                                        onChange={handleImageUpload}
-                                        className="absolute inset-0 opacity-0 cursor-pointer"
-                                    />
-                                    {isUploading && (
-                                        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center">
-                                            <Loader2 size={24} className="animate-spin text-white" />
-                                        </div>
-                                    )}
+                                        <input 
+                                            type="file" 
+                                            multiple
+                                            accept="image/*"
+                                            onChange={handleImageUpload}
+                                            className="absolute inset-0 opacity-0 cursor-pointer"
+                                        />
+                                        {isUploading && (
+                                            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center">
+                                                <Loader2 size={24} className="animate-spin text-white" />
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -222,25 +245,15 @@ const AdminProductModal: React.FC<AdminProductModalProps> = ({ product, onClose,
                             </div>
                         </div>
 
-                        <div className="flex gap-6">
-                            <label className="flex items-center gap-3 cursor-pointer group">
-                                <input 
-                                    type="checkbox"
-                                    checked={formData.isNewDrop}
-                                    onChange={(e) => setFormData({ ...formData, isNewDrop: e.target.checked })}
-                                    className="w-4 h-4 rounded border-white/10 bg-white/5 checked:bg-white checked:border-white transition-all appearance-none cursor-pointer relative after:content-[''] after:hidden checked:after:block after:absolute after:left-[5px] after:top-[1px] after:w-[4px] after:h-[8px] after:border-b-2 after:border-r-2 after:border-black after:rotate-45"
-                                />
-                                <span className="text-[10px] font-black uppercase tracking-widest text-white/80 group-hover:text-white transition-colors">New Drop</span>
-                            </label>
-                            <label className="flex items-center gap-3 cursor-pointer group">
-                                <input 
-                                    type="checkbox"
-                                    checked={formData.isFeatured}
-                                    onChange={(e) => setFormData({ ...formData, isFeatured: e.target.checked })}
-                                    className="w-4 h-4 rounded border-white/10 bg-white/5 checked:bg-white checked:border-white transition-all appearance-none cursor-pointer relative after:content-[''] after:hidden checked:after:block after:absolute after:left-[5px] after:top-[1px] after:w-[4px] after:h-[8px] after:border-b-2 after:border-r-2 after:border-black after:rotate-45"
-                                />
-                                <span className="text-[10px] font-black uppercase tracking-widest text-white/80 group-hover:text-white transition-colors">Featured</span>
-                            </label>
+                        <div className="space-y-2">
+                            <label className="text-[10px] text-white/70 font-black uppercase tracking-widest mb-2 block">Product Status (e.g. New Drop, Coming Soon)</label>
+                            <input 
+                                type="text"
+                                placeholder="ENTER STATUS..."
+                                value={formData.status === 'none' ? '' : formData.status}
+                                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                                className="w-full bg-white/5 border border-white/10 rounded-[14px] px-4 py-3 text-xs font-bold uppercase tracking-widest text-white focus:outline-none focus:border-white/30 transition-all"
+                            />
                         </div>
                     </form>
 
@@ -254,7 +267,7 @@ const AdminProductModal: React.FC<AdminProductModalProps> = ({ product, onClose,
                         </button>
                         <button 
                             onClick={handleSubmit}
-                            disabled={isSaving || !formData.name || !formData.image}
+                            disabled={isSaving || !formData.name || !formData.images || formData.images.length === 0}
                             className="flex-[2] py-4 rounded-[14px] text-[10px] font-black uppercase tracking-widest bg-white text-black hover:bg-gray-200 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                         >
                             {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}

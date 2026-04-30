@@ -41,6 +41,12 @@ interface CartContextType {
   applyCoupon: (code: string) => Promise<{ success: boolean; message: string }>;
   removeCoupon: () => void;
   discountedTotal: number;
+  buyNowItem: CartItem | null;
+  setBuyNowItem: (item: CartItem) => void;
+  clearBuyNowItem: () => void;
+  checkoutItems: CartItem[];
+  checkoutTotal: number;
+  checkoutDiscountedTotal: number;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -51,6 +57,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [isCartOpen, setIsOpen] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<any | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [buyNowItem, setBuyNowItemState] = useState<CartItem | null>(null);
 
   // Load initial data
   useEffect(() => {
@@ -200,6 +207,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setAppliedCoupon(null);
   };
 
+  const setBuyNowItem = (item: CartItem) => {
+    setBuyNowItemState(item);
+  };
+
+  const clearBuyNowItem = () => {
+    setBuyNowItemState(null);
+  };
+
   const totalPrice = cart.reduce((total, item) => total + item.price * item.quantity, 0);
   const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
 
@@ -210,6 +225,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
   ) : 0;
 
   const discountedTotal = Math.max(totalPrice - currentDiscount, 0);
+
+  // When buyNowItem is set, checkout should use only that item
+  const checkoutItems = buyNowItem ? [buyNowItem] : cart;
+  const checkoutTotalPrice = buyNowItem ? buyNowItem.price * buyNowItem.quantity : totalPrice;
+  const checkoutCurrentDiscount = appliedCoupon ? (
+    appliedCoupon.discountType === 'percentage' 
+      ? Math.min((checkoutTotalPrice * appliedCoupon.discountValue) / 100, appliedCoupon.maxDiscount || Infinity)
+      : appliedCoupon.discountValue
+  ) : 0;
+  const checkoutDiscountedTotal = Math.max(checkoutTotalPrice - checkoutCurrentDiscount, 0);
 
   return (
     <CartContext.Provider
@@ -227,6 +252,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
         applyCoupon,
         removeCoupon,
         discountedTotal,
+        buyNowItem,
+        setBuyNowItem,
+        clearBuyNowItem,
+        checkoutItems,
+        checkoutTotal: checkoutTotalPrice,
+        checkoutDiscountedTotal,
       }}
     >
       {children}
