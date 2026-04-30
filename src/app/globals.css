@@ -1,0 +1,289 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-heading: var(--font-heading);
+  --font-syncopate: var(--font-syncopate);
+
+  /* RITUAL brand tokens */
+  --color-terracotta: oklch(0.55 0.16 25);
+  --color-terracotta-muted: oklch(0.65 0.1 25);
+  --color-onyx: oklch(0% 0 0);
+  --color-ash: oklch(0.92 0 0);
+  --color-brand-red: #ff0000;
+
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+
+  /* Set all radius to 0 as requested */
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
+  --radius-3xl: 0;
+  --radius-4xl: 0;
+
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+}
+
+:root {
+  --background: oklch(1 0 0);
+  /* Pure White */
+  --foreground: oklch(0% 0 0);
+  /* Onyx Black */
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0% 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0% 0 0);
+  --primary: oklch(0.55 0.16 25);
+  /* Terracotta */
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.95 0 0);
+  /* Light Gray */
+  --secondary-foreground: oklch(0% 0 0);
+  --muted: oklch(0.96 0 0);
+  --muted-foreground: oklch(0.4 0 0);
+  --accent: oklch(0.55 0.16 25);
+  /* Terracotta */
+  --accent-foreground: oklch(1 0 0);
+  --destructive: oklch(0.5 0.2 25);
+  --border: oklch(0% 0 0 / 10%);
+  --input: oklch(0% 0 0 / 10%);
+  --ring: oklch(0.55 0.16 25);
+  --radius: 0rem;
+
+  --chart-1: oklch(0.55 0.16 25);
+  --chart-2: oklch(0% 0 0);
+  --chart-3: oklch(0.4 0 0);
+  --chart-4: oklch(0.7 0 0);
+  --chart-5: oklch(0.9 0 0);
+
+  --sidebar: oklch(0.98 0 0);
+  --sidebar-foreground: oklch(0% 0 0);
+  --sidebar-primary: oklch(0.55 0.16 25);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.95 0 0);
+  --sidebar-accent-foreground: oklch(0.55 0.16 25);
+  --sidebar-border: oklch(0.9 0 0);
+  --sidebar-ring: oklch(0.55 0.16 25);
+}
+
+.dark {
+  --background: oklch(0.05 0 0);
+  /* Near Pure Black */
+  --foreground: oklch(1 0 0);
+  /* White */
+  --card: oklch(0.1 0 0);
+  --card-foreground: oklch(1 0 0);
+  --popover: oklch(0.1 0 0);
+  --popover-foreground: oklch(1 0 0);
+  --primary: oklch(0.55 0.16 25);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.15 0 0);
+  --secondary-foreground: oklch(1 0 0);
+  --muted: oklch(0.15 0 0);
+  --muted-foreground: oklch(0.6 0 0);
+  --accent: oklch(0.55 0.16 25);
+  --accent-foreground: oklch(1 0 0);
+  --destructive: oklch(0.5 0.2 25);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 10%);
+  --ring: oklch(0.55 0.16 25);
+
+  --chart-1: oklch(0.55 0.16 25);
+  --chart-2: oklch(1 0 0);
+  --chart-3: oklch(0.6 0 0);
+  --chart-4: oklch(0.4 0 0);
+  --chart-5: oklch(0.2 0 0);
+
+  --sidebar: oklch(0.08 0 0);
+  --sidebar-foreground: oklch(1 0 0);
+  --sidebar-primary: oklch(0.55 0.16 25);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.15 0 0);
+  --sidebar-accent-foreground: oklch(0.55 0.16 25);
+  --sidebar-border: oklch(0.2 0 0);
+  --sidebar-ring: oklch(0.55 0.16 25);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased selection:bg-brand-red/30 selection:text-brand-red;
+    background: radial-gradient(circle at 50% -20%, oklch(0.9 0.02 25), var(--background) 80%);
+    font-variant-ligatures: no-common-ligatures;
+  }
+
+  h1, h2, h3, h4, h5 {
+    font-family: var(--font-heading) !important;
+    @apply tracking-tight text-foreground uppercase font-black;
+  }
+
+  a {
+    @apply transition-colors duration-200 ease-in-out;
+  }
+
+  /* Hide spinners in number inputs */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+}
+
+@layer utilities {
+  .p-section {
+    @apply py-16 md:py-24 lg:py-32;
+  }
+
+  .m-section {
+    @apply my-16 md:my-24 lg:py-32;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .text-ritual-outline {
+    -webkit-text-stroke: 1px currentColor;
+    color: transparent;
+  }
+
+  .glass-morphism {
+    @apply backdrop-blur-2xl bg-white/10 border border-white/20 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)];
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  }
+
+  .dark .glass-morphism {
+    @apply bg-black/20 border-white/10;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0.2));
+  }
+
+  .glass-reflection {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .glass-reflection::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+      45deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.05) 45%,
+      rgba(255, 255, 255, 0.2) 50%,
+      rgba(255, 255, 255, 0.05) 55%,
+      transparent 100%
+    );
+    transform: rotate(-45deg);
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+
+  .grain-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  }
+}
+
+@layer components {
+  .container {
+    @apply !max-w-7xl !w-full !mx-auto !px-4 sm:px-6 lg:px-8;
+  }
+
+  .section {
+    @apply py-16 md:py-24 relative bg-background;
+  }
+
+  h1 {
+    @apply text-[3.5rem] leading-[0.85] md:text-[6rem] lg:text-[9rem] tracking-tighter;
+  }
+
+  h2 {
+    @apply text-[2.5rem] leading-[1] md:text-[3.5rem] lg:text-[4.5rem] tracking-tight;
+  }
+
+  .product-grid {
+    @apply grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-12;
+  }
+
+  .product-card {
+    @apply relative border-none bg-transparent flex flex-col gap-4;
+  }
+
+  .product-image-container {
+    @apply aspect-[3/4] bg-[#F5F5F5] overflow-hidden relative;
+  }
+
+  .nav-link {
+    @apply text-[10px] md:text-xs uppercase tracking-[0.3em] font-black text-foreground/90 hover:text-primary transition-all duration-300;
+  }
+
+  .btn-ritual {
+    @apply bg-black text-white px-10 py-5 text-xs font-black uppercase tracking-[0.2em] transition-all duration-300 hover:bg-primary inline-block text-center;
+  }
+}
