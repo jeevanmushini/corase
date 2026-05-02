@@ -16,27 +16,29 @@ export async function POST(req: Request) {
     
     await connectToDatabase();
     
-    // Generate a simple ID if not provided (matching the existing products)
-    const count = await Product.countDocuments();
-    const newId = body.id || (count + 1).toString();
-    
     // Map frontend fields to DB fields
     const productData = {
       ...body,
-      id: newId,
       title: body.name || body.title,
       images: body.images || (body.image ? [body.image] : []),
     };
     
-    // Remove frontend-only fields
+    // Remove frontend-only or conflicting fields
     delete productData.name;
     delete productData.image;
+    delete productData.id;
+    delete productData._id;
 
-    const product = await Product.create(productData);
+    const product = new Product(productData);
+    console.log("Saving product:", product);
+    await product.save();
     
     return NextResponse.json(product, { status: 201 });
   } catch (error: any) {
-    console.error("Create product error:", error);
+    console.error("Create product error details:", error);
+    if (error.code === 11000) {
+      return NextResponse.json({ error: `Duplicate key error: ${JSON.stringify(error.keyValue)}` }, { status: 400 });
+    }
     return NextResponse.json({ error: error.message || "Failed to create product" }, { status: 500 });
   }
 }
