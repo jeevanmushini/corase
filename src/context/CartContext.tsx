@@ -59,7 +59,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [isCartOpen, setIsOpen] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<any | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
-  const [buyNowItem, setBuyNowItemState] = useState<CartItem | null>(null);
+  const [buyNowItem, setBuyNowItemState] = useState<CartItem | null>(() => {
+    if (typeof window !== "undefined") {
+      const saved = sessionStorage.getItem("corase_buy_now");
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch (e) {
+          console.error("Failed to parse buyNowItem from sessionStorage");
+        }
+      }
+    }
+    return null;
+  });
 
   // Load initial data
   useEffect(() => {
@@ -148,6 +160,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [cart, status, isInitialized]);
 
   const addToCart = (newItem: CartItem) => {
+    // Clear buyNowItem if user adds a normal item to cart
+    if (buyNowItem) clearBuyNowItem();
+
     setCart((prevCart) => {
       const existingItemIndex = prevCart.findIndex(
         (item) => item.productId === newItem.productId && item.selectedSize === newItem.selectedSize
@@ -211,10 +226,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const setBuyNowItem = (item: CartItem) => {
     setBuyNowItemState(item);
+    sessionStorage.setItem("corase_buy_now", JSON.stringify(item));
   };
 
   const clearBuyNowItem = () => {
     setBuyNowItemState(null);
+    sessionStorage.removeItem("corase_buy_now");
   };
 
   const totalPrice = cart.reduce((total, item) => total + item.price * item.quantity, 0);
@@ -247,7 +264,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
         updateQuantity,
         clearCart,
         isCartOpen,
-        setIsOpen,
+        setIsOpen: (open: boolean) => {
+          if (open && buyNowItem) clearBuyNowItem();
+          setIsOpen(open);
+        },
         totalPrice,
         totalItems,
         appliedCoupon,

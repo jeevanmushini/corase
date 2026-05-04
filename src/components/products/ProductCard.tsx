@@ -98,15 +98,17 @@ export default function ProductCard({ product, onSelect, onEdit, isAdmin, priori
                 image: product.image,
               });
             }}
-            className={`absolute top-4 right-4 p-3 rounded-full transition-all duration-500 z-10 ${
+            className={cn(
+              "absolute top-4 right-4 p-3 rounded-full transition-all duration-500 z-30 shadow-2xl",
               wishlisted
-                ? "bg-brand-red text-white shadow-lg scale-110"
-                : "bg-background/80 backdrop-blur-md text-foreground/40 opacity-0 group-hover:opacity-100 hover:text-brand-red hover:bg-background"
-            }`}
+                ? "bg-brand-red text-white scale-110"
+                : "bg-background/80 backdrop-blur-md text-foreground/40 sm:opacity-0 sm:group-hover:opacity-100 hover:text-brand-red hover:bg-background"
+            )}
           >
             <Heart
               size={14}
               fill={wishlisted ? "currentColor" : "none"}
+              className={cn("transition-transform duration-300", wishlisted && "scale-110")}
               strokeWidth={2.5}
             />
           </button>

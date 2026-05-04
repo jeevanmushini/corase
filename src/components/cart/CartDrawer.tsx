@@ -48,7 +48,7 @@ const CartDrawer: React.FC = () => {
                         </div>
 
                         {/* Items */}
-                        <div className="flex-1 overflow-y-auto p-8 space-y-8 scrollbar-hide">
+                        <div className="flex-1 overflow-y-auto p-8 space-y-8 scrollbar-hide relative">
                             {cart.length === 0 ? (
                                 <div className="h-full flex flex-col items-center justify-center text-center opacity-30">
                                     <ShoppingBag size={64} className="mb-4 text-foreground" />
@@ -162,9 +162,13 @@ const CartDrawer: React.FC = () => {
                                              <span>-₹{totalPrice - discountedTotal}</span>
                                          </div>
                                      )}
+                                     <div className="flex justify-between text-[10px] font-bold text-foreground/50 uppercase tracking-widest">
+                                         <span>Shipping</span>
+                                         <span>₹49</span>
+                                     </div>
                                      <div className="flex justify-between text-xs font-bold font-syncopate text-foreground uppercase italic border-t border-foreground/5 pt-4">
                                          <span>Total</span>
-                                         <span className="text-foreground font-black">₹{discountedTotal}</span>
+                                         <span className="text-foreground font-black">₹{discountedTotal + (cart.length > 0 ? 49 : 0)}</span>
                                      </div>
                                  </div>
                                  <a

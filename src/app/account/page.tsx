@@ -5,9 +5,10 @@ import { motion } from 'framer-motion';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { User, Heart, Package, MapPin, Settings, ChevronRight, Trash2, LogOut, X, Truck, Calendar, ShoppingBag } from 'lucide-react';
+import { User, Heart, Package, MapPin, Settings, ChevronRight, Trash2, LogOut, X, Truck, Calendar, ShoppingBag, Plus } from 'lucide-react';
 import { useWishlist } from '@/context/WishlistContext';
 import { useSession, signOut } from 'next-auth/react';
+import ProductModal from '@/components/products/ProductModal';
 
 const TABS = [
     { id: 'orders',    label: 'Orders',    icon: Package },
@@ -26,8 +27,21 @@ function AccountPageInner() {
     const [orders, setOrders] = useState<any[]>([]);
     const [loadingOrders, setLoadingOrders] = useState(true);
     const [viewingOrder, setViewingOrder] = useState<any>(null);
+    const [addresses, setAddresses] = useState<any[]>([]);
+    const [isAddingAddress, setIsAddingAddress] = useState(false);
+    const [allProducts, setAllProducts] = useState<any[]>([]);
+    const [selectedProduct, setSelectedProduct] = useState<any>(null);
+    const [newAddress, setNewAddress] = useState({
+        fullName: '',
+        phone: '',
+        addressLine: '',
+        city: '',
+        state: '',
+        pincode: '',
+    });
     const router = useRouter();
 
+    // Load initial data
     useEffect(() => {
         if (session) {
             fetch('/api/orders/user')
@@ -37,12 +51,46 @@ function AccountPageInner() {
                 })
                 .catch(err => console.error(err))
                 .finally(() => setLoadingOrders(false));
+
+            // Load saved addresses
+            const savedAddresses = localStorage.getItem(`corase_addresses_${session.user?.email}`);
+            if (savedAddresses) {
+                try {
+                    setAddresses(JSON.parse(savedAddresses));
+                } catch (e) {
+                    console.error("Failed to parse addresses");
+                }
+            }
         }
     }, [session]);
+
+    // Save addresses when they change
+    useEffect(() => {
+        if (session && addresses.length > 0) {
+            localStorage.setItem(`corase_addresses_${session.user?.email}`, JSON.stringify(addresses));
+        } else if (session && addresses.length === 0) {
+            localStorage.removeItem(`corase_addresses_${session.user?.email}`);
+        }
+    }, [addresses, session]);
 
     const handleSignOut = async () => {
         await signOut({ redirect: false });
         router.push('/');
+    };
+
+    // Fetch products to support modal opening
+    useEffect(() => {
+        fetch('/api/products')
+            .then(res => res.json())
+            .then(data => setAllProducts(data))
+            .catch(err => console.error(err));
+    }, []);
+
+    const handleProductClick = (productId: string) => {
+        const product = allProducts.find(p => p.id === productId);
+        if (product) {
+            setSelectedProduct(product);
+        }
     };
 
     useEffect(() => {
@@ -160,7 +208,8 @@ function AccountPageInner() {
                                 {wishlist.map(item => (
                                     <div
                                         key={item.productId}
-                                        className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-3.5 hover:border-white/[0.12] transition-all"
+                                        onClick={() => handleProductClick(item.productId)}
+                                        className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-3.5 hover:border-white/[0.12] transition-all cursor-pointer group"
                                     >
                                         <div className="relative aspect-square bg-white/[0.05] rounded-xl overflow-hidden mb-3">
                                             <Image
@@ -168,15 +217,18 @@ function AccountPageInner() {
                                                 alt={item.name}
                                                 fill
                                                 sizes="(max-width: 640px) 50vw, 33vw"
-                                                className="object-contain p-3"
+                                                className="object-contain p-3 group-hover:scale-110 transition-transform duration-500"
                                             />
                                         </div>
-                                        <p className="text-xs font-bold text-white truncate mb-1">{item.name}</p>
+                                        <p className="text-xs font-bold text-white truncate mb-1 uppercase tracking-tight">{item.name}</p>
                                         <div className="flex items-center justify-between">
                                             <p className="text-xs text-white/70 font-medium">₹{item.price}</p>
                                             <button
-                                                onClick={() => toggleWishlist(item)}
-                                                className="text-white/25 hover:text-red-400 transition-colors p-0.5"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    toggleWishlist(item);
+                                                }}
+                                                className="text-white/25 hover:text-red-500 transition-colors p-0.5"
                                                 title="Remove"
                                             >
                                                 <Trash2 size={13} />
@@ -191,21 +243,138 @@ function AccountPageInner() {
 
                 {/* ─ Addresses ─ */}
                 {activeTab === 'addresses' && (
-                    <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }}>
-                        <div className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-5 max-w-sm">
-                            <div className="flex items-center gap-2.5 mb-4">
-                                <MapPin size={16} className="text-white" />
-                                <p className="font-bold text-sm text-white">Default Address</p>
+                    <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+                        {!isAddingAddress && addresses.length === 0 ? (
+                            <div className="text-center py-20 bg-white/[0.02] border border-white/[0.07] rounded-[2rem]">
+                                <MapPin size={40} className="mx-auto mb-4 text-white/10" />
+                                <p className="text-white/40 font-bold text-xs uppercase tracking-[0.2em] mb-6">
+                                    No addresses saved yet
+                                </p>
+                                <button
+                                    onClick={() => setIsAddingAddress(true)}
+                                    className="inline-flex items-center gap-3 bg-white text-black px-8 py-3.5 rounded-full font-black font-syncopate text-[10px] tracking-widest uppercase hover:bg-gray-200 transition-all shadow-[0_10px_30px_rgba(255,255,255,0.1)] active:scale-95"
+                                >
+                                    <Plus size={14} strokeWidth={3} />
+                                    Add New Address
+                                </button>
                             </div>
-                            <p className="text-sm text-white/80 font-medium leading-relaxed">
-                                123, Brigade Road<br />
-                                Bangalore, Karnataka 560001<br />
-                                India
-                            </p>
-                            <button className="mt-4 text-white text-xs font-bold uppercase tracking-widest hover:underline flex items-center gap-1">
-                                Edit <ChevronRight size={11} />
-                            </button>
-                        </div>
+                        ) : !isAddingAddress ? (
+                            <div className="grid gap-4">
+                                {addresses.map((addr, idx) => (
+                                    <div key={idx} className="bg-white/[0.04] border border-white/[0.07] rounded-2xl p-5 relative group">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="flex items-center gap-2.5">
+                                                <MapPin size={16} className="text-brand-red" />
+                                                <p className="font-bold text-sm text-white uppercase tracking-tight">{addr.fullName}</p>
+                                            </div>
+                                            <button 
+                                                onClick={() => setAddresses(prev => prev.filter((_, i) => i !== idx))}
+                                                className="text-white/20 hover:text-red-500 transition-colors p-1"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+                                        <p className="text-sm text-white/60 font-medium leading-relaxed">
+                                            {addr.addressLine}<br />
+                                            {addr.city}, {addr.state} {addr.pincode}<br />
+                                            Phone: {addr.phone}
+                                        </p>
+                                    </div>
+                                ))}
+                                <button
+                                    onClick={() => setIsAddingAddress(true)}
+                                    className="w-full py-4 border border-dashed border-white/10 rounded-2xl text-[10px] font-black text-white/30 uppercase tracking-[0.3em] hover:border-white/30 hover:text-white transition-all"
+                                >
+                                    + Add Another Address
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="bg-white/[0.04] border border-white/[0.07] rounded-[2rem] p-8">
+                                <div className="flex items-center justify-between mb-8">
+                                    <h3 className="text-sm font-black font-syncopate text-white uppercase tracking-tight italic">New Address</h3>
+                                    <button onClick={() => setIsAddingAddress(false)} className="text-white/30 hover:text-white"><X size={18}/></button>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    <div className="md:col-span-2">
+                                        <label className="block text-[10px] font-black text-white/40 mb-2 uppercase tracking-widest">Full Name</label>
+                                        <input 
+                                            value={newAddress.fullName}
+                                            onChange={e => setNewAddress({...newAddress, fullName: e.target.value})}
+                                            placeholder="Enter your name"
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-white/30 transition-all"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-white/40 mb-2 uppercase tracking-widest">Phone Number</label>
+                                        <input 
+                                            value={newAddress.phone}
+                                            onChange={e => setNewAddress({...newAddress, phone: e.target.value})}
+                                            placeholder="10-digit mobile number"
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-white/30 transition-all"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-white/40 mb-2 uppercase tracking-widest">Pincode</label>
+                                        <input 
+                                            value={newAddress.pincode}
+                                            onChange={e => setNewAddress({...newAddress, pincode: e.target.value})}
+                                            placeholder="6-digit code"
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-white/30 transition-all"
+                                        />
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <label className="block text-[10px] font-black text-white/40 mb-2 uppercase tracking-widest">Address (Area and Street)</label>
+                                        <textarea 
+                                            value={newAddress.addressLine}
+                                            onChange={e => setNewAddress({...newAddress, addressLine: e.target.value})}
+                                            rows={3}
+                                            placeholder="Building Name, Road, etc."
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-white/30 transition-all resize-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-white/40 mb-2 uppercase tracking-widest">City</label>
+                                        <input 
+                                            value={newAddress.city}
+                                            onChange={e => setNewAddress({...newAddress, city: e.target.value})}
+                                            placeholder="City/Town"
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-white/30 transition-all"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black text-white/40 mb-2 uppercase tracking-widest">State</label>
+                                        <input 
+                                            value={newAddress.state}
+                                            onChange={e => setNewAddress({...newAddress, state: e.target.value})}
+                                            placeholder="Select State"
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-white/30 transition-all"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="mt-10 flex gap-4">
+                                    <button 
+                                        onClick={() => {
+                                            if (!newAddress.fullName || !newAddress.phone || !newAddress.addressLine) {
+                                                alert("Please fill in required fields");
+                                                return;
+                                            }
+                                            setAddresses([...addresses, newAddress]);
+                                            setIsAddingAddress(false);
+                                            setNewAddress({ fullName: '', phone: '', addressLine: '', city: '', state: '', pincode: '' });
+                                        }}
+                                        className="flex-1 bg-white text-black py-4 rounded-xl font-black font-syncopate text-[10px] tracking-widest uppercase hover:bg-gray-200 transition-all active:scale-95"
+                                    >
+                                        Save Address
+                                    </button>
+                                    <button 
+                                        onClick={() => setIsAddingAddress(false)}
+                                        className="flex-1 bg-white/5 text-white py-4 rounded-xl font-black font-syncopate text-[10px] tracking-widest uppercase hover:bg-white/10 transition-all border border-white/10"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </motion.div>
                 )}
 
@@ -348,6 +517,14 @@ function AccountPageInner() {
                         </div>
                     )}
                 </Suspense>
+
+                {/* Product Modal */}
+                {selectedProduct && (
+                    <ProductModal 
+                        product={selectedProduct}
+                        onClose={() => setSelectedProduct(null)}
+                    />
+                )}
             </div>
         </div>
     );

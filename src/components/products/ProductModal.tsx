@@ -9,6 +9,9 @@ import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { filterSizesByCategory } from '@/lib/sizeUtils';
+import SizeChartModal from './SizeChartModal';
+import { useWishlist } from '@/context/WishlistContext';
+import { Heart } from 'lucide-react';
 
 interface Review {
     _id: string;
@@ -27,8 +30,11 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
     const [selectedSize, setSelectedSize] = useState<string>('');
     const [isAdding, setIsAdding] = useState(false);
     const { addToCart, setIsOpen, setBuyNowItem } = useCart();
+    const { toggleWishlist, isWishlisted } = useWishlist();
     const router = useRouter();
     const { data: session } = useSession();
+    
+    const wishlisted = product ? isWishlisted(product.id) : false;
 
     // Review state
     const [reviews, setReviews] = useState<Review[]>([]);
@@ -38,6 +44,8 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [reviewError, setReviewError] = useState('');
     const [reviewSuccess, setReviewSuccess] = useState('');
+    const [isSizeChartOpen, setIsSizeChartOpen] = useState(false);
+    const [showSizeError, setShowSizeError] = useState(false);
 
     // Fetch reviews when product changes
     useEffect(() => {
@@ -52,7 +60,11 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
     }, [product?.id]);
 
     const handleAddToCart = () => {
-        if (!selectedSize) return;
+        if (!selectedSize) {
+            setShowSizeError(true);
+            setTimeout(() => setShowSizeError(false), 2000);
+            return;
+        }
         
         setIsAdding(true);
         setTimeout(() => {
@@ -70,13 +82,24 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
     };
 
     const handleBuyNow = () => {
-        if (!selectedSize) return;
+        if (!product) return;
+        if (!selectedSize) {
+            setShowSizeError(true);
+            setTimeout(() => setShowSizeError(false), 2000);
+            return;
+        }
         
+        const price = Number(product.price);
+        if (isNaN(price) || price <= 0) {
+            alert("This product's price is not valid. Please contact support.");
+            return;
+        }
+
         setBuyNowItem({
-            productId: product!.id,
-            name: product!.name,
-            price: product!.price,
-            image: product!.images?.[0] || product!.image,
+            productId: product.id,
+            name: product.name || "Product",
+            price: price,
+            image: product.images?.[0] || product.image || "/placeholder.jpg",
             selectedSize: selectedSize,
             quantity: 1
         });
@@ -182,14 +205,20 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
                                 initial={{ opacity: 0, scale: 0.8 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ duration: 0.8 }}
-                                className="relative w-full h-full"
+                                drag="x"
+                                dragConstraints={{ left: 0, right: 0 }}
+                                onDragEnd={(_, info) => {
+                                    if (info.offset.x > 50) prevImage({ stopPropagation: () => {} } as any);
+                                    else if (info.offset.x < -50) nextImage({ stopPropagation: () => {} } as any);
+                                }}
+                                className="relative w-full h-full cursor-grab active:cursor-grabbing"
                             >
                                 <Image 
                                     src={product.images?.[currentImageIndex] || product.image} 
                                     alt={product.name} 
                                     fill 
                                     sizes="(max-width: 768px) 100vw, 50vw"
-                                    className="object-contain drop-shadow-[0_20px_60px_rgba(0,0,0,0.1)]"
+                                    className="object-contain drop-shadow-[0_20px_60px_rgba(0,0,0,0.1)] pointer-events-none"
                                     priority
                                 />
                             </motion.div>
@@ -233,7 +262,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
                         </div>
 
                         {/* Details Section */}
-                        <div className="w-full md:w-[480px] p-6 sm:p-10 md:p-16 flex flex-col justify-start bg-foreground/[0.02] overflow-y-auto">
+                        <div className="w-full md:w-[480px] p-6 sm:p-10 md:p-16 flex flex-col justify-start bg-foreground/[0.02] overflow-y-auto relative">
                             <motion.div
                                 initial={{ opacity: 0, x: 20 }}
                                 animate={{ opacity: 1, x: 0 }}
@@ -268,9 +297,34 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
                                     )}
                                 </div>
                                 
-                                <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold font-syncopate tracking-tighter text-foreground mb-2 md:mb-4 leading-none uppercase italic">
-                                    {product.name}
-                                </h2>
+                                <div className="flex items-start justify-between gap-4 mb-2 md:mb-4">
+                                    <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold font-syncopate tracking-tighter text-foreground leading-none uppercase italic">
+                                        {product.name}
+                                    </h2>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleWishlist({
+                                                productId: product.id,
+                                                name: product.name,
+                                                price: product.price,
+                                                image: product.images?.[0] || product.image,
+                                            });
+                                        }}
+                                        className={cn(
+                                            "p-3 rounded-full transition-all duration-500 shadow-xl flex-shrink-0",
+                                            wishlisted
+                                                ? "bg-brand-red text-white scale-110"
+                                                : "bg-foreground/5 text-foreground/40 hover:bg-foreground/10 hover:text-brand-red"
+                                        )}
+                                    >
+                                        <Heart 
+                                            size={20} 
+                                            fill={wishlisted ? "currentColor" : "none"} 
+                                            strokeWidth={2.5} 
+                                        />
+                                    </button>
+                                </div>
 
                                 {/* Price + Rating Summary */}
                                 <div className="flex items-center gap-4 mb-6 md:mb-10">
@@ -288,8 +342,22 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
                                     <div>
                                         <div className="flex justify-between mb-4">
                                             <p className="text-[10px] font-black tracking-[0.3em] text-foreground uppercase">Select Size</p>
-                                            <p className="text-[10px] font-bold text-foreground uppercase underline cursor-pointer hover:text-foreground transition-colors">Size Guide</p>
+                                            <button 
+                                                onClick={() => setIsSizeChartOpen(true)}
+                                                className="text-[10px] font-bold text-foreground uppercase underline cursor-pointer hover:text-foreground transition-colors"
+                                            >
+                                                Size Guide
+                                            </button>
                                         </div>
+                                        {showSizeError && (
+                                            <motion.p 
+                                                initial={{ x: -10 }}
+                                                animate={{ x: [0, -5, 5, -5, 5, 0] }}
+                                                className="text-[10px] font-bold text-brand-red mb-2 uppercase tracking-widest"
+                                            >
+                                                Please select a size first!
+                                            </motion.p>
+                                        )}
                                         <div className="grid grid-cols-4 gap-3">
                                             {filterSizesByCategory(
                                                 (product.variants || product.sizes || []).map((v: any) => typeof v === 'string' ? v : v.size),
@@ -343,11 +411,12 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
 
                                     <div className="flex flex-col gap-3">
                                         <button 
+                                            type="button"
                                             onClick={handleAddToCart}
-                                            disabled={!selectedSize || isAdding}
+                                            disabled={isAdding}
                                             className={cn(
-                                                "w-full py-5 rounded-xl font-black tracking-[0.2em] text-[10px] flex items-center justify-center space-x-3 transition-all duration-500 disabled:opacity-30 disabled:cursor-not-allowed group border border-foreground/10",
-                                                isAdding ? "bg-foreground/10 text-foreground" : "bg-foreground/5 text-foreground hover:bg-foreground/10"
+                                                "w-full py-5 rounded-xl font-black tracking-[0.2em] text-[10px] flex items-center justify-center space-x-3 transition-all duration-500 group border border-foreground/10",
+                                                !selectedSize ? "bg-foreground/5 text-foreground/20" : isAdding ? "bg-foreground/10 text-foreground" : "bg-foreground/5 text-foreground hover:bg-foreground/10"
                                             )}
                                         >
                                             {isAdding ? (
@@ -368,9 +437,13 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
                                         </button>
 
                                         <button 
+                                            type="button"
                                             onClick={handleBuyNow}
-                                            disabled={!selectedSize || isAdding}
-                                            className="w-full py-5 rounded-xl font-black tracking-[0.3em] text-[10px] flex items-center justify-center space-x-3 bg-foreground text-background hover:scale-[1.02] transition-all duration-500 shadow-[0_20px_50px_rgba(0,0,0,0.1)]"
+                                            disabled={isAdding}
+                                            className={cn(
+                                                "w-full py-5 rounded-xl font-black tracking-[0.3em] text-[10px] flex items-center justify-center space-x-3 transition-all duration-500 shadow-[0_20px_50px_rgba(0,0,0,0.1)]",
+                                                !selectedSize ? "bg-foreground/20 text-background/50" : "bg-foreground text-background hover:scale-[1.02]"
+                                            )}
                                         >
                                             <span>BUY IT NOW</span>
                                             <ArrowRight size={16} />
@@ -522,6 +595,10 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
                     </motion.div>
                 </div>
             )}
+            <SizeChartModal 
+                isOpen={isSizeChartOpen} 
+                onClose={() => setIsSizeChartOpen(false)} 
+            />
         </AnimatePresence>
     );
 };
