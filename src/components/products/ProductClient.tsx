@@ -346,13 +346,13 @@ export default function ProductClient({ productId, initialProduct }: ProductClie
                       image: product.image,
                     })
                   }
-                  className={`w-14 h-14 rounded-sm border flex items-center justify-center transition-all ${
+                  className={`w-12 h-12 sm:w-14 sm:h-14 rounded-sm border flex items-center justify-center transition-all ${
                     wishlisted
                       ? "bg-white text-black border-white"
                       : "border-white/15 text-white/50 hover:text-white hover:border-white/40"
                   }`}
                 >
-                  <Heart size={18} fill={wishlisted ? "currentColor" : "none"} />
+                  <Heart size={16} className="sm:w-[18px] sm:h-[18px]" fill={wishlisted ? "currentColor" : "none"} />
                 </button>
               </div>
               <button
@@ -366,6 +366,7 @@ export default function ProductClient({ productId, initialProduct }: ProductClie
             {/* Trust Badges */}
             <div className="border-t border-white/[0.06] pt-8 space-y-4">
               {[
+                { icon: Truck, text: "Standard delivery at ₹69" },
                 { icon: Truck, text: "Free delivery on orders above ₹999" },
                 { icon: RotateCcw, text: "7-day hassle-free returns" },
                 { icon: Shield, text: "100% secure payment" },

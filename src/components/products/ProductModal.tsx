@@ -298,7 +298,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
                                 </div>
                                 
                                 <div className="flex items-start justify-between gap-4 mb-2 md:mb-4">
-                                    <h2 className="text-2xl sm:text-4xl md:text-5xl font-bold font-syncopate tracking-tighter text-foreground leading-none uppercase italic">
+                                    <h2 className="text-xl sm:text-4xl md:text-5xl font-bold font-syncopate tracking-tighter text-foreground leading-tight uppercase italic flex-1 pr-2">
                                         {product.name}
                                     </h2>
                                     <button
@@ -312,14 +312,15 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose }) => {
                                             });
                                         }}
                                         className={cn(
-                                            "p-3 rounded-full transition-all duration-500 shadow-xl flex-shrink-0",
+                                            "p-2.5 sm:p-3 rounded-full transition-all duration-500 shadow-xl flex-shrink-0",
                                             wishlisted
                                                 ? "bg-brand-red text-white scale-110"
                                                 : "bg-foreground/5 text-foreground/40 hover:bg-foreground/10 hover:text-brand-red"
                                         )}
                                     >
                                         <Heart 
-                                            size={20} 
+                                            size={16} 
+                                            className="sm:w-5 sm:h-5"
                                             fill={wishlisted ? "currentColor" : "none"} 
                                             strokeWidth={2.5} 
                                         />

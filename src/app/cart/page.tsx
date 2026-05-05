@@ -36,7 +36,7 @@ export default function CartPage() {
     );
   }
 
-  const shipping = totalPrice >= 999 ? 0 : 99;
+  const shipping = totalPrice >= 999 ? 0 : 69;
   const grandTotal = totalPrice + shipping;
 
   return (
@@ -188,7 +188,7 @@ export default function CartPage() {
                 </div>
                 {shipping > 0 && (
                   <p className="text-[10px] text-white/30 tracking-wider">
-                    Free shipping on orders over ₹999
+                    Free shipping on orders over ₹999. Standard delivery ₹69.
                   </p>
                 )}
                 <div className="border-t border-white/[0.06] pt-4 flex justify-between">

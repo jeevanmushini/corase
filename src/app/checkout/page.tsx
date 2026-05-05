@@ -53,10 +53,11 @@ export default function CheckoutPage() {
     const [showUpiModal, setShowUpiModal] = useState(false);
     const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
     const [utr, setUtr] = useState('');
+    const [customerUpi, setCustomerUpi] = useState('');
     const [isConfirming, setIsConfirming] = useState(false);
 
-    const shipping = checkoutItems.length > 0 ? 49 : 0;
-    const finalTotal = Math.max((checkoutDiscountedTotal || 0) + shipping, 0);
+    const shipping = (checkoutTotal >= 999 || (buyNowItem && buyNowItem.price * buyNowItem.quantity >= 999)) ? 0 : 69;
+    const finalTotal = Math.max((checkoutDiscountedTotal || 0) + (checkoutItems.length > 0 ? shipping : 0), 0);
 
     // Redirect if no items (with a small buffer for initialization)
     useEffect(() => {
@@ -192,7 +193,8 @@ export default function CheckoutPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     orderId: pendingOrderId,
-                    transactionId: utr
+                    transactionId: utr,
+                    customerUpiId: customerUpi
                 }),
             });
 
@@ -463,46 +465,55 @@ export default function CheckoutPage() {
                     <motion.div 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        className="absolute inset-0 bg-black/90 backdrop-blur-sm"
-                        onClick={() => setShowUpiModal(false)}
+                        className="absolute inset-0 bg-black/80 backdrop-blur-md"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setShowUpiModal(false);
+                        }}
                     />
                     <motion.div 
                         initial={{ scale: 0.9, opacity: 0, y: 20 }}
                         animate={{ scale: 1, opacity: 1, y: 0 }}
-                        className="relative bg-card border border-foreground/10 w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                        className="relative bg-[#1a1a1a] border border-white/10 w-full max-w-md rounded-[2.5rem] overflow-y-auto max-h-[90vh] shadow-2xl scrollbar-hide"
                     >
-                        <div className="p-8 text-center">
-                            <div className="w-16 h-16 bg-foreground text-background rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(0,0,0,0.1)]">
-                                <Image src="/upi-icon.png" alt="UPI" width={32} height={32} className="dark:invert" onError={(e) => (e.currentTarget.src = 'https://upload.wikimedia.org/wikipedia/commons/e/e1/UPI-Logo-vector.svg')} />
+                        <div className="p-6 md:p-8 text-center">
+                            <div className="w-14 h-14 bg-white text-black rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-[0_0_30px_rgba(255,255,255,0.15)]">
+                                <Image 
+                                    src="https://upload.wikimedia.org/wikipedia/commons/e/e1/UPI-Logo-vector.svg" 
+                                    alt="UPI" 
+                                    width={28} 
+                                    height={28} 
+                                />
                             </div>
-                            <h3 className="text-xl font-black font-syncopate uppercase tracking-tight mb-2 text-foreground">Scan & Pay</h3>
-                            <p className="text-foreground/50 text-sm font-medium mb-8">Scan this QR code with any UPI app to pay ₹{finalTotal}</p>
+                            <h3 className="text-lg font-black font-syncopate uppercase tracking-tight mb-1 text-white">Scan & Pay</h3>
+                            <p className="text-white/50 text-[10px] font-medium mb-6 uppercase tracking-widest">Scan this QR code with any UPI app to pay ₹{finalTotal}</p>
                             
-                            <div className="bg-white p-6 rounded-[2.5rem] inline-block mb-8 shadow-[0_0_50px_rgba(255,255,255,0.1)] text-center w-full max-w-[300px]">
-                                <div className="flex flex-col items-center gap-4 mb-6">
+                            <div className="bg-white p-5 rounded-[2rem] inline-block mb-6 shadow-[0_0_50px_rgba(255,255,255,0.1)] text-center w-full max-w-[280px]">
+                                <div className="flex flex-col items-center gap-3 mb-4">
                                     <div className="flex items-center gap-2">
-                                        <div className="w-8 h-8 bg-[#5f259f] rounded-lg flex items-center justify-center">
-                                            <span className="text-white font-black text-lg">पे</span>
+                                        <div className="w-7 h-7 bg-[#5f259f] rounded-lg flex items-center justify-center">
+                                            <span className="text-white font-black text-base">पे</span>
                                         </div>
-                                        <span className="text-[#5f259f] font-black text-xl tracking-tight">PhonePe</span>
+                                        <span className="text-[#5f259f] font-black text-lg tracking-tight">PhonePe</span>
                                     </div>
-                                    <div className="text-[#5f259f] font-black text-[10px] tracking-[0.2em] uppercase">
+                                    <div className="text-[#5f259f] font-black text-[8px] tracking-[0.2em] uppercase">
                                         Accepted Here
                                     </div>
                                 </div>
 
-                                <div className="relative group overflow-hidden rounded-[2rem] border border-black/5">
+                                <div className="relative group overflow-hidden rounded-[1.5rem] border border-black/5">
                                     <Image 
                                         src="/paymentScanner.jpeg"
                                         alt="UPI QR Code"
-                                        width={280}
-                                        height={350}
+                                        width={240}
+                                        height={300}
                                         className="mx-auto object-contain"
                                         priority
                                     />
                                 </div>
 
-                                <div className="mt-6 text-black/80 font-black text-xs tracking-widest uppercase">
+                                <div className="mt-4 text-black/80 font-black text-[10px] tracking-widest uppercase">
                                     KORASIKA ABHISHEK
                                 </div>
                             </div>
@@ -510,18 +521,33 @@ export default function CheckoutPage() {
                             <div className="space-y-4">
                                 <div className="bg-foreground/[0.03] rounded-2xl p-4 border border-foreground/[0.08] space-y-4 text-left">
                                     <div>
-                                        <p className="text-[10px] text-foreground/40 font-black uppercase tracking-widest mb-1">UPI ID</p>
-                                        <p className="text-sm font-mono text-foreground select-all">{process.env.NEXT_PUBLIC_UPI_ID}</p>
+                                        <p className="text-[9px] text-white/40 font-black uppercase tracking-widest mb-1">Store UPI ID</p>
+                                        <p className="text-xs font-mono text-white select-all bg-white/5 p-2 rounded-lg border border-white/10">{process.env.NEXT_PUBLIC_UPI_ID}</p>
                                     </div>
-                                    <div className="pt-4 border-t border-foreground/10">
-                                        <p className="text-[10px] text-foreground/40 font-black uppercase tracking-widest mb-2">Enter Transaction ID / UTR</p>
-                                        <input 
-                                            type="text"
-                                            value={utr}
-                                            onChange={(e) => setUtr(e.target.value)}
-                                            placeholder="12-digit UTR number"
-                                            className="w-full bg-background border border-foreground/10 rounded-xl px-4 py-3 text-sm font-mono text-foreground placeholder-foreground/20 focus:outline-none focus:border-foreground/40 transition-all"
-                                        />
+                                    <div className="pt-4 border-t border-foreground/10 space-y-4">
+                                        <div>
+                                            <p className="text-[9px] text-white/40 font-black uppercase tracking-widest mb-2 text-left">Your UPI ID</p>
+                                            <input 
+                                                type="text"
+                                                value={customerUpi}
+                                                onChange={(e) => setCustomerUpi(e.target.value)}
+                                                placeholder="e.g. name@upi"
+                                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm font-mono text-white placeholder-white/20 focus:outline-none focus:border-white/40 focus:bg-white/10 transition-all"
+                                            />
+                                        </div>
+                                        <div>
+                                            <div className="flex justify-between items-center mb-2">
+                                                <p className="text-[9px] text-white/40 font-black uppercase tracking-widest text-left">Transaction ID / UTR</p>
+                                                <span className="text-[8px] font-black text-brand-red uppercase tracking-tighter animate-pulse">Required for delivery</span>
+                                            </div>
+                                            <input 
+                                                type="text"
+                                                value={utr}
+                                                onChange={(e) => setUtr(e.target.value)}
+                                                placeholder="12-digit UTR or Transaction ID"
+                                                className="w-full bg-white/5 border border-brand-red/30 rounded-xl px-4 py-3 text-sm font-mono text-white placeholder-white/20 focus:outline-none focus:border-brand-red/50 focus:bg-white/10 transition-all"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
 
@@ -530,11 +556,11 @@ export default function CheckoutPage() {
                                     disabled={isConfirming || !utr}
                                     className="w-full bg-brand-red text-white py-4 rounded-2xl font-black font-syncopate text-xs tracking-widest uppercase hover:bg-red-600 transition-all shadow-[0_10px_30px_rgba(255,50,50,0.3)] disabled:opacity-50"
                                 >
-                                    {isConfirming ? "Confirming..." : "I've Paid"}
+                                    {isConfirming ? "Confirming..." : "Confirm Payment"}
                                 </button>
                                 <button
                                     onClick={() => setShowUpiModal(false)}
-                                    className="w-full text-foreground/40 text-xs font-bold uppercase tracking-widest hover:text-foreground transition-colors"
+                                    className="w-full text-foreground/40 text-[10px] font-black uppercase tracking-widest hover:text-foreground transition-colors"
                                 >
                                     Cancel
                                 </button>

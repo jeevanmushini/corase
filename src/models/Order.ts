@@ -34,6 +34,8 @@ export interface IOrder extends Document {
   razorpayOrderId?: string;
   razorpayPaymentId?: string;
   transactionId?: string;
+  utrNumber?: string;
+  customerUpiId?: string;
   trackingNumber?: string;
   carrier?: string;
   shippedAt?: Date;
@@ -79,6 +81,8 @@ const OrderSchema = new Schema(
     razorpayOrderId: { type: String },
     razorpayPaymentId: { type: String },
     transactionId: { type: String },
+    utrNumber: { type: String },
+    customerUpiId: { type: String },
     trackingNumber: { type: String },
     carrier: { type: String },
     shippedAt: { type: Date },

@@ -10,7 +10,7 @@ import {
     TrendingUp, ArrowUpRight, AlertTriangle, Star,
     LogOut, ChevronRight, Eye, Menu, X, Save, Edit2, Trash2, Plus, 
     Image as ImageIcon, Settings as SettingsIcon, Search, Filter, ArrowDown, ArrowUp, BarChart3,
-    Truck, MapPin, CreditCard, ExternalLink, Calendar, Printer, Ticket, Heart
+    Truck, MapPin, CreditCard, ExternalLink, Calendar, Printer, Ticket, Heart, Phone
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -397,10 +397,12 @@ export default function AdminDashboard() {
             <Sidebar />
 
             <div className="lg:ml-72 min-h-screen flex flex-col">
-                <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-foreground/5 px-8 py-6">
+                <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-foreground/5 px-4 md:px-8 py-4 md:py-6">
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <button className="lg:hidden" onClick={() => setOpen(true)}><Menu size={24} /></button>
+                        <div className="flex items-center gap-3 md:gap-4">
+                            <button onClick={() => setOpen(true)} className="lg:hidden p-2 hover:bg-foreground/5 rounded-xl transition-colors">
+                                <Menu size={20} />
+                            </button>
                             <h1 className="text-brand-red text-xl font-black font-syncopate uppercase tracking-tighter">
                                 {NAV.find(n => n.tab === tab)?.label}
                             </h1>
@@ -470,7 +472,8 @@ export default function AdminDashboard() {
                                     </div>
                                 </div>
                                 
-                                <div className="h-64 flex items-end gap-2 md:gap-4">
+                                <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
+                                    <div className="h-64 min-w-[500px] flex items-end gap-2 md:gap-4 pb-2">
                                     {chartData.map((d, i) => {
                                         const height = (d.value / maxChartValue) * 100;
                                         return (
@@ -497,6 +500,7 @@ export default function AdminDashboard() {
                                             </div>
                                         );
                                     })}
+                                    </div>
                                 </div>
                             </div>
 
@@ -818,6 +822,9 @@ export default function AdminDashboard() {
                                                     <div className="flex flex-col">
                                                         <span className="text-xs font-bold text-foreground uppercase">{o.shippingAddress?.fullName}</span>
                                                         <span className="text-[10px] text-foreground/35 uppercase truncate max-w-[150px]">{o.shippingAddress?.email}</span>
+                                                        {o.shippingAddress?.phone && (
+                                                            <span className="text-[9px] text-brand-red font-black uppercase tracking-widest mt-0.5">{o.shippingAddress.phone}</span>
+                                                        )}
                                                     </div>
                                                 </td>
                                                 <td className="px-8 py-5">
@@ -1088,6 +1095,11 @@ export default function AdminDashboard() {
                                                                                 )}
                                                                             </div>
                                                                             <span className="text-[10px] text-foreground/40 font-bold uppercase">{o.shippingAddress?.email}</span>
+                                                                            {o.shippingAddress?.phone && (
+                                                                                <span className="text-[10px] text-brand-red font-black uppercase tracking-wider flex items-center gap-1 mt-0.5">
+                                                                                    <Phone size={8} /> {o.shippingAddress.phone}
+                                                                                </span>
+                                                                            )}
                                                                         </div>
                                                                     </div>
                                                                 </td>
@@ -1101,9 +1113,9 @@ export default function AdminDashboard() {
                                                                 </div>
                                                             </td>
                                                             <td className="px-8 py-6">
-                                                                <div className="flex items-center gap-2">
+                                                                <div className="flex">
                                                                     <span className="text-xs font-mono font-black text-indigo-400 select-all bg-indigo-400/5 px-3 py-1 rounded-lg border border-indigo-400/10 tracking-wider">
-                                                                        {o.transactionId || 'NO ID SUBMITTED'}
+                                                                        ID: {o.transactionId || 'NO ID SUBMITTED'}
                                                                     </span>
                                                                 </div>
                                                             </td>
@@ -1136,7 +1148,7 @@ export default function AdminDashboard() {
                                                     })}
                                                 {orders.filter(o => o.paymentMethod === 'UPI Direct').length === 0 && (
                                                     <tr>
-                                                        <td colSpan={6} className="px-8 py-20 text-center text-xs font-bold text-foreground/30 uppercase tracking-[0.3em]">
+                                                        <td colSpan={6} className="px-8 py-20 text-center text-xs font-bold text-foreground/30 uppercase tracking-[0.3em] bg-background/50">
                                                             No UPI Direct payments found
                                                         </td>
                                                     </tr>
@@ -1545,24 +1557,24 @@ export default function AdminDashboard() {
                             className="relative bg-[#0d0d0d] border border-white/10 w-full max-w-4xl max-h-[90vh] rounded-[14px] overflow-hidden flex flex-col shadow-2xl"
                         >
                             {/* Modal Header */}
-                            <div className="p-8 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center">
-                                        <ShoppingCart className="text-white" size={24} />
+                            <div className="p-4 md:p-8 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+                                <div className="flex items-center gap-3 md:gap-4">
+                                    <div className="w-10 h-10 md:w-12 md:h-12 bg-white/5 rounded-2xl flex items-center justify-center">
+                                        <ShoppingCart className="text-white" size={20} />
                                     </div>
                                     <div>
-                                        <h2 className="text-xl font-black font-syncopate uppercase tracking-tight text-white">Order #{viewingOrder._id.slice(-8)}</h2>
-                                        <p className="text-[10px] font-bold text-white/60 uppercase tracking-[0.2em] mt-1">
+                                        <h2 className="text-base md:text-xl font-black font-syncopate uppercase tracking-tight text-white">Order #{viewingOrder._id.slice(-8)}</h2>
+                                        <p className="text-[8px] md:text-[10px] font-bold text-white/60 uppercase tracking-[0.2em] mt-0.5">
                                             Placed on {new Date(viewingOrder.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}
                                         </p>
                                     </div>
                                 </div>
-                                <button onClick={() => setViewingOrder(null)} className="p-3 hover:bg-white/5 rounded-xl transition-colors text-white">
-                                    <X size={24} />
+                                <button onClick={() => setViewingOrder(null)} className="p-2 md:p-3 hover:bg-white/5 rounded-xl transition-colors text-white">
+                                    <X size={20} />
                                 </button>
                             </div>
 
-                            <div className="flex-1 overflow-y-auto p-8 grid grid-cols-1 lg:grid-cols-2 gap-10">
+                            <div className="flex-1 overflow-y-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-10">
                                 {/* Left Col: Items & Status */}
                                 <div className="space-y-10">
                                     <section>
@@ -1629,11 +1641,25 @@ export default function AdminDashboard() {
                                             </div>
                                             <div className="col-span-2">
                                                 <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mb-1">
-                                                    {viewingOrder.paymentMethod === 'UPI Direct' ? 'UPI Transaction ID (UTR)' : 'Payment ID'}
+                                                    {viewingOrder.paymentMethod === 'UPI Direct' ? 'Transaction ID / UTR' : 'Payment ID'}
                                                 </p>
-                                                <p className="text-xs font-mono text-white/70 select-all">
-                                                    {viewingOrder.transactionId || viewingOrder.razorpayPaymentId || viewingOrder.razorpayOrderId || 'N/A'}
-                                                </p>
+                                                <div className="space-y-2">
+                                                    <p className="text-xs font-mono text-white/70 select-all">
+                                                        {viewingOrder.transactionId || viewingOrder.razorpayPaymentId || viewingOrder.razorpayOrderId || 'N/A'}
+                                                    </p>
+                                                    {viewingOrder.paymentMethod === 'UPI Direct' && viewingOrder.customerUpiId && (
+                                                        <p className="text-xs font-mono text-white/70 select-all">
+                                                            <span className="text-white/30 uppercase text-[9px] mr-2">Customer UPI:</span> 
+                                                            {viewingOrder.customerUpiId}
+                                                        </p>
+                                                    )}
+                                                    {viewingOrder.shippingAddress?.phone && (
+                                                        <p className="text-xs font-mono text-white/70 select-all">
+                                                            <span className="text-white/30 uppercase text-[9px] mr-2">Phone:</span> 
+                                                            {viewingOrder.shippingAddress.phone}
+                                                        </p>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </section>
@@ -1652,7 +1678,20 @@ export default function AdminDashboard() {
                                                 </div>
                                                 <div>
                                                     <p className="text-sm font-black text-white uppercase">{viewingOrder.shippingAddress.fullName}</p>
-                                                    <p className="text-xs text-white/50">{viewingOrder.shippingAddress.email}</p>
+                                                    <div className="flex flex-col">
+                                                        <p className="text-xs text-white/50">{viewingOrder.shippingAddress.email}</p>
+                                                        {viewingOrder.shippingAddress.phone && (
+                                                            <div className="flex items-center gap-3 mt-1">
+                                                                <p className="text-xs text-brand-red font-black tracking-widest">{viewingOrder.shippingAddress.phone}</p>
+                                                                <a 
+                                                                    href={`tel:${viewingOrder.shippingAddress.phone}`}
+                                                                    className="text-[9px] font-black uppercase bg-brand-red/10 text-brand-red px-2 py-0.5 rounded hover:bg-brand-red hover:text-white transition-all"
+                                                                >
+                                                                    Consult
+                                                                </a>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div className="pt-4 border-t border-white/5 space-y-1">

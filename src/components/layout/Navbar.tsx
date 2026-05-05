@@ -273,11 +273,11 @@ const Navbar: React.FC = () => {
                                 onClick={() => setIsMobileMenuOpen(false)} 
                                 className="text-foreground/70 text-sm font-black uppercase tracking-[0.2em] flex flex-col items-center gap-2"
                             >
-                                <User size={24} />
+                                <User size={20} className="sm:w-6 sm:h-6" />
                                 <span>{isLoggedIn ? 'Account' : 'Sign In'}</span>
                             </Link>
                             <Link href="/account?tab=wishlist" onClick={() => setIsMobileMenuOpen(false)} className="text-foreground/70 text-sm font-black uppercase tracking-[0.2em] flex flex-col items-center gap-2">
-                                <Heart size={24} />
+                                <Heart size={20} className="sm:w-6 sm:h-6" />
                                 <span>Wishlist</span>
                             </Link>
                         </div>
