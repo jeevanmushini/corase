@@ -72,7 +72,7 @@ export default function Footer() {
                                     <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
                                         <Phone size={14} />
                                     </div>
-                                    <span className="text-xs font-bold uppercase tracking-widest">+91 9959735776 / +91 9121855776</span>
+                                    <span className="text-xs font-bold uppercase tracking-widest">+91 9959735776 / +91 9652128339 / +91 9618390632 </span>
                                 </div>
                                 <a href="https://www.instagram.com/corase.co?igsh=MXBvY3dxZTN2Ym9oag==" target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-white/60 hover:text-white transition-colors group">
                                     <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-brand-red/20 transition-all">
