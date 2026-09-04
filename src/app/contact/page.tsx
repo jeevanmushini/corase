@@ -67,7 +67,7 @@ export default function ContactPage() {
                                     <Phone className="text-white" size={24} />
                                 </div>
                                 <h3 className="text-xs font-black font-syncopate uppercase tracking-widest mb-2">Call Us</h3>
-                                <p className="text-sm text-white/60 font-medium">+91 98765 43210</p>
+                                <p className="text-sm text-white/60 font-medium">+91 99597 35776</p>
                             </div>
                         </div>
 
